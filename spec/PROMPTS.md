@@ -409,3 +409,36 @@ hosted pair had no gate at all, which is precisely why the failed rotation went 
 discovery, which depends on a public RPC that under-reports at random, so it failed intermittently
 on a correct deployment. It now asserts the invariant that matters — the catalogue a visitor sees
 matches the deployment — and *reports* the degraded log scan as detail rather than failing on it.
+
+## 5 September 2026 — the repository, and a scan that lied
+
+**Prompt:** run the commit plan; scan for retired credentials as well as live ones.
+
+**Adding the retired-credential scan is what exposed that the scan did nothing.** It compared the
+tree against a backup of the pre-rotation `.env` that had been cleared from the scratchpad between
+sessions, and a `try`/`catch` swallowed the read failure — so it reported "0 retired secrets" in the
+same shape it would have reported a genuine pass. It would have said clean forever.
+
+Its replacement, a pattern scan that does not need to know a credential's value, then had a bug of
+its own: `\b[0-9a-fA-F]{64}\b` never matches a `0x`-prefixed key, because `x` is a word character.
+It silently missed the anvil dev key sitting in two staged files. Both bugs surfaced only because
+the clean result was disbelieved and tested.
+
+> **A scan reporting clean is worth nothing until it has been shown capable of reporting dirty.**
+> Run a canary through it — a known-bad value it must flag — before trusting a negative result. This
+> applies to every check whose passing output is silence: secret scans, lint gates, "no diff"
+> assertions, absence-of-X claims.
+
+Third instance of the same shape. The first was the credential redaction rule; the second was
+verifying a rotation against the chain rather than the file claiming it. All three are the same
+error: **treating the absence of a complaint as evidence, when the complaint mechanism was never
+shown to work.**
+
+Two smaller things from the same run, both recorded in `COMMIT-PLAN.md`:
+
+- **A repaired history has the repair in it.** The first staging attempt mis-enumerated files and
+  landed commit 6's contents third. It was discarded — `.git` deleted, sequence re-run from scratch —
+  rather than fixed up, because it had not been pushed and nothing was owed to it.
+- **Do not backdate to match a plan.** The plan said the 4th; execution happened on the 5th. Dates
+  are evidence, and a graded history whose dates are fiction is worth less than one that is late and
+  true.
