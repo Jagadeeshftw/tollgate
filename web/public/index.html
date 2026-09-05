@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Tollgate — agent trace</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
+<style>
+  /* Committed dark. This is an instrument screen, filmed at 720p against a dark ground; a light
+     variant would never be seen and would dilute the contrast work. Every colour is painted
+     explicitly so the page holds on any host ground.
+
+     The one structural idea: policy and judgment are encoded as substrate versus addition, not as
+     two competing hues. Arithmetic is the page's own furniture — hairlines, mono, no fill, no
+     colour. Judgment is the only place colour appears. Coded redundantly across position, fill,
+     marker and colour, so it survives video compression and colourblind viewers. */
+  :root {
+    --ground:  #0A0E13;
+    --surface: #121821;
+    --raised:  #161E28;
+    --rule:    #1E2833;
+    --rule-lit:#2B3947;
+
+    --text:    #E3E9EF;
+    --muted:   #7C8B9A;
+    --dim:     #4A5766;
+
+    --judgment:#E8B04B;
+    --good:    #57C79A;
+    --bad:     #E2685F;
+
+    --sans: "Archivo", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --gutter: 132px;
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: dark; }
+  body {
+    margin: 0; background: var(--ground); color: var(--text);
+    font-family: var(--sans); font-size: 15px; line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 { margin: 0; text-wrap: balance; }
+  .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  header {
+    display: flex; align-items: center; gap: 28px; flex-wrap: wrap;
+    padding: 15px 28px; border-bottom: 1px solid var(--rule);
+    background: var(--ground); position: sticky; top: 0; z-index: 10;
+  }
+  .brand { display: flex; align-items: baseline; gap: 12px; }
+  .brand b { font-size: 17px; font-weight: 700; letter-spacing: -0.015em; }
+  .brand span { color: var(--dim); font-size: 12.5px; }
+
+  form.ask { display: flex; gap: 8px; flex: 1; min-width: 360px; }
+  form.ask input {
+    flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--rule);
+    color: var(--text); border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 14px;
+  }
+  form.ask input:focus-visible { outline: 2px solid var(--judgment); outline-offset: -1px; border-color: transparent; }
+  select, button {
+    background: var(--surface); border: 1px solid var(--rule); color: var(--text);
+    border-radius: 6px; padding: 8px 14px; font: inherit; font-size: 14px; cursor: pointer;
+  }
+  button.go { background: var(--judgment); border-color: var(--judgment); color: #0A0E13; font-weight: 600; }
+  button:disabled { opacity: .45; cursor: default; }
+  select:focus-visible, button:focus-visible { outline: 2px solid var(--judgment); outline-offset: 2px; }
+
+  /* ── context: what a judge landing cold needs, and nothing more ──────── */
+  .context { padding: 26px 28px 22px; border-bottom: 1px solid var(--rule); }
+  .context .lede { font-size: 16.5px; line-height: 1.55; max-width: 70ch; color: var(--text); }
+  .layers { display: flex; gap: 30px; flex-wrap: wrap; margin: 18px 0 20px; }
+  .layers div { display: flex; flex-direction: column; gap: 3px; }
+  .layers dt { font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); }
+  .layers dd { margin: 0; font-size: 13.5px; color: var(--muted); }
+  .layers dd b { color: var(--text); font-weight: 500; }
+
+  .tries { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .tries .lbl { font-size: 10.5px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); margin-right: 4px; }
+  .verify { margin-top: 18px; padding-top: 15px; border-top: 1px solid var(--rule); display: flex; gap: 24px; flex-wrap: wrap; font-family: var(--mono); font-size: 12px; }
+  .verify a { color: var(--muted); text-underline-offset: 3px; }
+  .verify a:hover, .verify a:focus-visible { color: var(--text); }
+  .verify span { color: var(--dim); }
+
+  main { display: grid; grid-template-columns: 268px minmax(0, 1fr); align-items: start; }
+  @media (max-width: 1060px) { main { grid-template-columns: 1fr; } aside { display: none; } }
+
+  aside { padding: 22px 20px 60px; border-right: 1px solid var(--rule); position: sticky; top: 57px; }
+  .eyebrow { font-size: 10.5px; font-weight: 600; letter-spacing: 0.11em; text-transform: uppercase; color: var(--dim); margin-bottom: 12px; }
+  .svc { border: 1px solid var(--rule); border-radius: 8px; padding: 11px 12px; margin-bottom: 8px; background: var(--surface); }
+  .svc .n { font-family: var(--mono); font-size: 12px; word-break: break-all; }
+  .svc .c { color: var(--muted); font-size: 12px; margin: 5px 0 8px; line-height: 1.45; }
+  .svc .p { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .svc .p b { color: var(--text); font-weight: 500; }
+  .rail-foot { margin-top: 16px; font-family: var(--mono); font-size: 11px; color: var(--dim); line-height: 1.7; word-break: break-all; }
+
+  section.trace { padding: 22px 28px 100px; max-width: 1000px; }
+  .legend {
+    display: flex; gap: 26px; flex-wrap: wrap; padding-bottom: 16px;
+    border-bottom: 1px solid var(--rule); font-size: 12.5px; color: var(--muted);
+  }
+  .legend div { display: flex; align-items: center; gap: 9px; }
+  .legend b { color: var(--text); font-weight: 600; }
+  .key { width: 13px; height: 13px; flex: none; border-radius: 2px; }
+  .key.policy { border: 1px solid var(--rule-lit); }
+  .key.judgment { background: var(--judgment); }
+  .key.network { background: var(--dim); opacity: .55; }
+
+  .row { display: grid; grid-template-columns: var(--gutter) minmax(0, 1fr); gap: 20px; }
+  .gut { position: relative; padding: 18px 14px 0 0; text-align: right; border-right: 1px solid var(--rule); }
+  .tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.09em; text-transform: uppercase; color: var(--dim); }
+  .tag.judgment { color: var(--judgment); }
+  .gut::after {
+    content: ""; position: absolute; right: -4px; top: 22px; width: 7px; height: 7px;
+    border-radius: 50%; background: var(--ground); border: 1px solid var(--rule-lit);
+  }
+  .row.judgment .gut::after { background: var(--judgment); border-color: var(--judgment); }
+  .body { padding: 12px 0 18px; min-width: 0; }
+
+  h3.head { font-size: 12.5px; font-weight: 600; color: var(--muted); margin-bottom: 10px; }
+  .card { border: 1px solid var(--rule); border-left: 2px solid var(--judgment); border-radius: 8px; background: var(--raised); padding: 15px 17px; }
+  .choice { font-size: 21px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+  .choice.m { font-family: var(--mono); font-size: 19px; }
+  .choice.yes { color: var(--good); } .choice.no { color: var(--bad); }
+  .why { margin-top: 9px; font-size: 14px; line-height: 1.55; max-width: 68ch; }
+  .why::before { content: "\201C"; color: var(--dim); } .why::after { content: "\201D"; color: var(--dim); }
+  .rejected { margin-top: 12px; padding-top: 11px; border-top: 1px solid var(--rule); display: grid; gap: 7px; }
+  .rejected p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; max-width: 74ch; }
+  .rejected code { font-family: var(--mono); font-size: 12.5px; color: var(--text); }
+
+  .ledger { display: flex; gap: 26px; flex-wrap: wrap; margin: 11px 0 2px; }
+  .ledger div { display: flex; flex-direction: column; gap: 2px; }
+  .ledger dt { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--dim); }
+  .ledger dd { margin: 0; font-family: var(--mono); font-size: 14px; font-variant-numeric: tabular-nums; }
+
+  .tbl-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th { text-align: left; font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); padding: 0 14px 7px 0; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+  tbody td { padding: 7px 14px 7px 0; border-bottom: 1px solid var(--rule); vertical-align: baseline; }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num { font-family: var(--mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.reason { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+  tr.out td { color: var(--dim); }
+  tr.out td.num { text-decoration: line-through; text-decoration-color: var(--rule-lit); }
+  .pill { display: inline-block; font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; padding: 2px 7px; border-radius: 3px; white-space: nowrap; }
+  .pill.in { color: var(--muted); border: 1px solid var(--rule-lit); }
+  .pill.out { color: var(--dim); border: 1px solid var(--rule); }
+  .note { margin-top: 11px; font-size: 12px; color: var(--dim); line-height: 1.5; max-width: 78ch; }
+
+  .net { font-family: var(--mono); font-size: 12.5px; color: var(--muted); line-height: 1.7; word-break: break-all; }
+  .net a { color: var(--muted); text-underline-offset: 3px; }
+  .net a:hover, .net a:focus-visible { color: var(--text); }
+  .net .st { color: var(--dim); }
+  .net .bad { color: var(--bad); }
+
+  .final { border: 1px solid var(--rule); border-left: 2px solid var(--good); border-radius: 8px; background: var(--raised); padding: 18px 19px; }
+  .final.declined { border-left-color: var(--bad); }
+  .final .answer { font-size: 15px; line-height: 1.65; white-space: pre-wrap; max-width: 72ch; }
+  .final .spent { margin-top: 13px; padding-top: 11px; border-top: 1px solid var(--rule); font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+
+  .replay { display: flex; gap: 13px; align-items: flex-start; border: 1px solid var(--judgment); border-radius: 8px; padding: 13px 16px; margin-bottom: 22px; background: color-mix(in srgb, var(--judgment) 7%, var(--surface)); }
+  .replay .mark { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--judgment); white-space: nowrap; padding-top: 2px; }
+  .replay p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .replay b { color: var(--text); font-weight: 600; }
+  .fatal { border: 1px solid var(--rule); border-left: 2px solid var(--bad); border-radius: 8px; padding: 14px 16px; color: var(--bad); font-size: 14px; line-height: 1.55; }
+  .placeholder { color: var(--dim); font-size: 14px; padding: 44px 0; }
+
+  @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand"><b>Tollgate</b> <span>agents buy data by name</span></div>
+  <form class="ask" id="ask">
+    <input type="text" id="q" value="what are the top uniswap pools by TVL right now?" aria-label="Question" />
+    <select id="budget" aria-label="Budget">
+      <option value="5000000">0.05 HBAR</option>
+      <option value="20000000">0.20 HBAR</option>
+      <option value="300000">0.003 HBAR</option>
+      <option value="50000">0.0005 HBAR</option>
+    </select>
+    <button class="go" id="go">Ask</button>
+  </form>
+</header>
+
+<div class="context">
+  <p class="lede">An AI agent discovers a data service <b>by ENS name</b>, reads its price off the
+    name's own resolver, pays for it per call in HBAR, and reasons over what it gets back — with no
+    signup, no API key and no subscription anywhere in the flow.</p>
+
+  <div class="layers">
+    <div><dt>Directory</dt><dd><b>ENS</b> — names, prices, permissions</dd></div>
+    <div><dt>Payment</dt><dd><b>Hedera x402</b> — pay per call, in HBAR</dd></div>
+    <div><dt>Data</dt><dd><b>The Graph</b> — the goods being sold</dd></div>
+  </div>
+
+  <div class="tries">
+    <span class="lbl">Watch a recorded run</span>
+    <button type="button" data-trace="answer-on-live-graph-data">Answers on live data</button>
+    <button type="button" data-trace="refusal-on-placeholder-data">Refuses on placeholder data</button>
+  </div>
+
+  <div class="verify">
+    <span>verify independently</span>
+    <a href="https://sepolia.etherscan.io/address/0xF6A97d82885628b68DC2AdCFaBA936578AffeF8F" target="_blank" rel="noopener">tollgatehq.eth on Etherscan</a>
+    <a href="https://tollgate-service-production.up.railway.app/s/uniswap-pools/quote?limit=5" target="_blank" rel="noopener">live service quote</a>
+    <a href="https://hashscan.io/testnet/transaction/0.0.7162784@1788278442.283807208" target="_blank" rel="noopener">a settled payment on HashScan</a>
+  </div>
+</div>
+
+<main>
+  <aside>
+    <div class="eyebrow">Listed on ENS</div>
+    <div id="listings"><div class="placeholder">loading…</div></div>
+  </aside>
+
+  <section class="trace">
+    <div class="legend">
+      <div><span class="key policy"></span><b>Arithmetic</b> — could not have come out otherwise</div>
+      <div><span class="key judgment"></span><b>Model decided</b> — could have gone the other way</div>
+      <div><span class="key network"></span>Network</div>
+    </div>
+    <div id="events"><div class="placeholder">Pick a recorded run above, or ask a question.</div></div>
+  </section>
+</main>
+
+<script>
+const ACTOR = {
+  question: "policy", resolving: "network", discovered: "network", "policy:plans": "policy",
+  "decision:select": "judgment", "decision:size": "judgment", "decision:authorize": "judgment",
+  quote: "network", payment: "network", received: "network", "data:excluded": "policy",
+  "settlement:retry": "network", "settlement:failed": "network", "decision:assess": "judgment",
+  answer: "judgment", declined: "judgment", error: "network",
+};
+const LABEL = { policy: "arithmetic", judgment: "model decided", network: "network" };
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const events = document.getElementById("events");
+
+function row(actor, html, cls) {
+  const el = document.createElement("div");
+  el.className = "row " + actor;
+  el.innerHTML = '<div class="gut"><span class="tag ' + actor + '">' + LABEL[actor] + "</span></div>" +
+    '<div class="body">' + html + "</div>";
+  events.append(el);
+  el.scrollIntoView({ behavior: "auto", block: "end" });
+}
+const card = (inner) => '<div class="card">' + inner + "</div>";
+
+function planTable(e) {
+  const r = (p, out) =>
+    '<tr class="' + (out ? "out" : "") + '"><td><span class="pill ' + (out ? "out" : "in") + '">' +
+    (out ? "excluded" : "offered") + "</span></td>" +
+    '<td class="mono">' + esc(p.label) + "</td>" +
+    '<td class="num">' + p.units + " " + esc(p.unit) + "s</td>" +
+    '<td class="num">' + esc(p.cost) + "</td>" +
+    '<td class="reason">' + (out ? esc(p.because) : "") + "</td></tr>";
+  return '<h3 class="head">The decision space — computed before the model was asked</h3>' +
+    '<div class="tbl-wrap"><table><thead><tr><th></th><th>Service</th><th>Size</th><th>Cost</th><th>Why not</th></tr></thead><tbody>' +
+    e.affordable.map((p) => r(p, false)).join("") + e.excluded.map((p) => r(p, true)).join("") +
+    "</tbody></table></div>" +
+    '<p class="note">Excluded by arithmetic, before the model was consulted — these were never on the ' +
+    "menu to be talked into. Budget remaining " + esc(e.remaining) + ".</p>";
+}
+
+function render(e) {
+  const actor = ACTOR[e.type] ?? "network";
+  switch (e.type) {
+    case "replay":
+      events.innerHTML = '<div class="replay"><span class="mark">Archived run</span><p><b>Replay, not live.</b> ' +
+        "Recorded " + esc(e.recordedAt) + ". " + esc(e.note ?? "") + "</p></div>";
+      break;
+    case "question":
+      row("policy", '<h3 class="head">Question</h3><div class="choice">' + esc(e.question) + "</div>" +
+        '<div class="ledger"><div><dt>Budget</dt><dd>' + esc(e.budget) + " HBAR</dd></div>" +
+        "<div><dt>Asset</dt><dd>" + esc(e.asset) + " · native HBAR</dd></div></div>");
+      break;
+    case "resolving":
+      row("network", '<div class="net">resolving ' + esc(e.name) + " on ENS (Sepolia)</div>");
+      break;
+    case "discovered":
+      row("network", '<div class="net">resolved ' + e.candidates.length +
+        " service(s) from the registrar's event log<br /><span class=\"st\">" +
+        e.candidates.map((c) => esc(c.name)).join(" · ") + "</span></div>");
+      break;
+    case "policy:plans":
+      row("policy", planTable(e));
+      break;
+    case "decision:select":
+      row("judgment", '<h3 class="head">Which service?</h3>' + card(
+        '<div class="choice m">' + esc(e.chose) + "</div>" +
+        '<p class="why">' + esc(e.reasoning) + "</p>" +
+        (e.rejected.length ? '<div class="rejected">' + e.rejected.map((r) =>
+          "<p>not <code>" + esc(r.label) + "</code> — " + esc(r.because) + "</p>").join("") + "</div>" : "")));
+      break;
+    case "decision:size":
+      row("judgment", '<h3 class="head">How much to buy?</h3>' + card(
+        '<div class="choice m">' + e.units + " " + esc(e.unit) + "s</div>" +
+        '<p class="why">' + esc(e.reasoning) + "</p>"));
+      break;
+    case "decision:authorize":
+      row("judgment", '<h3 class="head">Is it worth paying?</h3>' + card(
+        '<div class="choice ' + (e.approved ? "yes" : "no") + '">' + (e.approved ? "Approved" : "Declined") + "</div>" +
+        '<div class="ledger"><div><dt>Price</dt><dd>' + esc(e.cost) + "</dd></div>" +
+        "<div><dt>Its own ceiling</dt><dd>" + esc(e.ceiling) + "</dd></div>" +
+        "<div><dt>Budget left</dt><dd>" + esc(e.remaining) + "</dd></div></div>" +
+        '<p class="why">' + esc(e.reasoning) + "</p>"));
+      break;
+    case "quote":
+      row("network", '<div class="net">HTTP 402 &nbsp;·&nbsp; ' + esc(e.amount) + " to " +
+        '<span class="st">' + esc(e.payTo) + "</span></div>");
+      break;
+    case "payment":
+      row("network", '<div class="net">settled ' + esc(e.amount) + ' &nbsp;·&nbsp; <a href="' +
+        esc(e.hashscanUrl) + '" target="_blank" rel="noopener">' + esc(e.transactionId) + "</a></div>");
+      break;
+    case "received":
+      row("network", '<div class="net"><span class="st">payment verified · ' + e.units +
+        " unit(s) · " + e.bytes + " bytes</span></div>");
+      break;
+    case "data:excluded":
+      row("policy", '<h3 class="head">Rows excluded from the ranking — the data contradicting itself</h3>' +
+        '<div class="tbl-wrap"><table><thead><tr><th></th><th>Pool</th><th>Reported</th><th>Why it was dropped</th></tr></thead><tbody>' +
+        e.rows.map((r) => '<tr class="out"><td><span class="pill out">excluded</span></td>' +
+          '<td class="mono">' + esc(r.label) + "</td>" +
+          '<td class="num">' + esc(r.reported) + "</td>" +
+          '<td class="reason">' + esc(r.reason) + "</td></tr>").join("") +
+        "</tbody></table></div>" +
+        '<p class="note">' + esc(e.rule) + "</p>");
+      break;
+    case "settlement:retry":
+      row("network", '<div class="net">settlement attempt ' + e.attempt +
+        " did not complete — retrying <span class=\"st\">(" + esc(e.reason) + ")</span></div>");
+      break;
+    case "settlement:failed":
+      row("network", '<div class="net"><span class="bad">settlement failed upstream</span> after ' +
+        e.attempts + " attempt(s)<br />attempted " + esc(e.attempted) + " to " + esc(e.payTo) +
+        '<br /><span class="st">' + esc(e.detail) + "</span></div>");
+      break;
+    case "decision:assess":
+      row("judgment", '<h3 class="head">Is this answer good enough?</h3>' + card(
+        '<div class="choice ' + (e.verdict === "sufficient" ? "yes" : "no") + '">' +
+        esc(e.verdict[0].toUpperCase() + e.verdict.slice(1)) + "</div>" +
+        '<p class="why">' + esc(e.reasoning) + "</p>"));
+      break;
+    case "answer":
+      row("judgment", '<div class="final"><h3 class="head">Answer</h3>' +
+        '<div class="answer">' + esc(e.text) + "</div>" +
+        '<div class="spent">spent ' + esc(e.spent) + "</div></div>");
+      break;
+    case "declined":
+      row("judgment", '<div class="final declined"><h3 class="head">Declined — buying nothing is a valid outcome</h3>' +
+        '<div class="answer">' + esc(e.reason) + "</div>" +
+        '<div class="spent">spent ' + esc(e.spent) + "</div></div>");
+      break;
+    case "error":
+      row("network", '<div class="net"><span class="bad">error</span> — ' + esc(e.message) + "</div>");
+      break;
+    case "fatal":
+      events.insertAdjacentHTML("beforeend",
+        '<div class="fatal">' + esc(e.message) +
+        '<div style="margin-top:11px"><button type="button" data-trace="answer-on-live-graph-data">' +
+        "Watch a recorded run instead</button></div></div>");
+      // the button is created after the initial wiring pass, so bind it now
+      for (const b of events.querySelectorAll("[data-trace]:not([data-bound])")) {
+        b.setAttribute("data-bound", "1");
+        b.addEventListener("click", () => stream("/api/replay/" + encodeURIComponent(b.dataset.trace)));
+      }
+      break;
+  }
+}
+
+function stream(url) {
+  const go = document.getElementById("go");
+  if (go) go.disabled = true;
+  events.innerHTML = '<div class="placeholder">streaming…</div>';
+  const src = new EventSource(url);
+  let first = true;
+  src.onmessage = (m) => {
+    if (first) { events.innerHTML = ""; first = false; }
+    render(JSON.parse(m.data));
+  };
+  src.onerror = () => { src.close(); if (go) go.disabled = false; };
+}
+
+for (const b of document.querySelectorAll("[data-trace]")) {
+  b.setAttribute("data-bound", "1");
+  b.addEventListener("click", () => stream("/api/replay/" + encodeURIComponent(b.dataset.trace)));
+}
+
+document.getElementById("ask").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  const q = encodeURIComponent(document.getElementById("q").value);
+  const budget = document.getElementById("budget").value;
+  stream("/api/ask?q=" + q + "&budget=" + budget);
+});
+
+(async function loadListings() {
+  const el = document.getElementById("listings");
+  try {
+    const d = await (await fetch("/api/listings")).json();
+    el.innerHTML = d.services.map((s) =>
+      '<div class="svc"><div class="n">' + esc(s.name) + "</div>" +
+      '<div class="c">' + esc(s.context) + "</div>" +
+      '<div class="p"><b>' + esc(s.unitPrice) + "</b> HBAR / " + esc(s.unit) + "</div></div>").join("") +
+      '<div class="rail-foot">parent&nbsp;&nbsp;' + esc(d.parent) +
+      "<br />resolver&nbsp;" + esc(d.resolver).slice(0, 12) + "…</div>";
+  } catch {
+    el.innerHTML = '<div class="placeholder">could not load listings</div>';
+  }
+})();
+
+// Reflect what this deployment can actually do, rather than offering a control that will fail.
+(async function applyMode() {
+  try {
+    const m = await (await fetch("/api/mode")).json();
+
+    if (!m.liveRuns) {
+      document.getElementById("ask").remove();
+      const note = document.createElement("span");
+      note.className = "brand";
+      note.innerHTML = "<span>recorded runs — live asking is disabled on this deployment</span>";
+      document.querySelector("header").append(note);
+      return;
+    }
+
+    // Never offer a budget the server will refuse.
+    const max = BigInt(m.maxBudgetTinybar ?? "2000000");
+    const sel = document.getElementById("budget");
+    for (const opt of [...sel.options]) if (BigInt(opt.value) > max) opt.remove();
+    if (!sel.options.length) {
+      const o = document.createElement("option");
+      o.value = String(max);
+      o.textContent = (Number(max) / 1e8) + " HBAR";
+      sel.append(o);
+    }
+
+    const cap = m.capacity;
+    if (cap) {
+      const note = document.createElement("span");
+      note.className = "brand";
+      note.innerHTML = "<span>live runs: " + esc(String(cap.remaining)) + " of " +
+        esc(String(cap.runsPerDay)) + " left today</span>";
+      document.querySelector("header").append(note);
+    }
+  } catch { /* leave the form as-is */ }
+})();
+</script>
+</body>
+</html>
