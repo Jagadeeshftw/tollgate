@@ -1,0 +1,44 @@
+{
+  "name": "tollgate",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "lint": "eslint .",
+    "test": "pnpm -r --if-present test",
+    "contracts:build": "forge build --root contracts",
+    "contracts:test": "forge test --root contracts",
+    "gates": "tsx --env-file-if-exists=.env scripts/gates.ts",
+    "hedera:setup": "tsx --env-file-if-exists=.env scripts/hedera-setup.ts",
+    "hcs:topic": "tsx --env-file-if-exists=.env scripts/hcs-topic.ts",
+    "ens:verify-fallback": "tsx --env-file-if-exists=.env scripts/verify-ens-fallback.ts",
+    "ens:deploy": "tsx --env-file-if-exists=.env scripts/deploy-ens.ts",
+    "ens:list": "tsx --env-file-if-exists=.env scripts/list-service.ts",
+    "ens:demo-delegation": "tsx --env-file-if-exists=.env scripts/demo-delegation.ts",
+    "health": "tsx scripts/health.ts",
+    "hedera:rotate-hosted": "tsx --env-file-if-exists=.env scripts/hedera-rotate-hosted.ts"
+  },
+  "devDependencies": {
+    "@hiero-ledger/sdk": "2.85.0",
+    "@tollgate/agent": "workspace:*",
+    "@tollgate/devnet": "workspace:*",
+    "@tollgate/ens-config": "workspace:*",
+    "@tollgate/graph": "workspace:*",
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.10.0",
+    "@x402/core": "2.24.0",
+    "@x402/express": "2.24.0",
+    "@x402/hedera": "2.24.0",
+    "eslint": "^9.39.5",
+    "express": "^5.2.1",
+    "tsx": "^4.23.13",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.69.0",
+    "viem": "^2.56.1"
+  }
+}
