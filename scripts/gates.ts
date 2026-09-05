@@ -735,6 +735,160 @@ async function gate2d() {
   }
 }
 
+/**
+ * Gate 2e — the catalogue survives an endpoint that serves state but not logs.
+ *
+ * @remarks
+ * `eth_getLogs` and `eth_call` fail independently, and the dangerous combination is a node that
+ * indexes state correctly while erroring on the log query: discovery used to abort outright and
+ * throw away a catalogue the resolver could still rebuild. Since the log path is currently
+ * returning nothing useful on public Sepolia endpoints, that recovery is not a fallback any more —
+ * it is the load-bearing path, and it needs a test that fails when it stops working.
+ *
+ * The failure is simulated with a local proxy rather than waited for, because the real endpoint
+ * chooses when to misbehave and a gate that only fires on a bad day is not a gate.
+ */
+async function gate2e() {
+  const name = "Gate 2e Log-failure recovery";
+  const { createServer } = await import("node:http");
+  const { readFileSync } = await import("node:fs");
+
+  let live: { registrar?: string; resolver?: string; parentName?: string; services?: string[]; deployBlock?: number };
+  try {
+    live = JSON.parse(readFileSync("deployments/ens-sepolia.json", "utf8"));
+  } catch {
+    return record(name, "BLOCKED", "no deployments/ens-sepolia.json");
+  }
+  const expected = live.services ?? [];
+  if (!live.registrar || !live.resolver || !live.parentName || !expected.length) {
+    return record(name, "BLOCKED", "deployment record lists no services");
+  }
+
+  const proxy = createServer((req, res) => {
+    let body = "";
+    req.on("data", (c) => (body += c));
+    req.on("end", () => {
+      let parsed: { method?: string; id?: unknown } = {};
+      try { parsed = JSON.parse(body) as typeof parsed; } catch { /* forward as-is */ }
+      if (parsed.method === "eth_getLogs") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ jsonrpc: "2.0", id: parsed.id, error: { code: -32000, message: "log index unavailable" } }));
+        return;
+      }
+      fetch(SEPOLIA_RPC, { method: "POST", headers: { "content-type": "application/json" }, body })
+        .then(async (u) => {
+          res.writeHead(u.status, { "content-type": "application/json" });
+          res.end(await u.text());
+        })
+        .catch(() => { res.writeHead(502).end("{}"); });
+    });
+  });
+
+  try {
+    await new Promise<void>((resolve) => proxy.listen(0, "127.0.0.1", resolve));
+    const port = (proxy.address() as { port: number }).port;
+
+    const { EnsDirectory } = await import("@tollgate/agent");
+    const found = await new EnsDirectory({
+      rpcUrl: `http://127.0.0.1:${port}`,
+      registrarAddress: live.registrar as `0x${string}`,
+      resolverAddress: live.resolver as `0x${string}`,
+      parentName: live.parentName,
+      fromBlock: BigInt(live.deployBlock ?? 0),
+      knownLabels: expected,
+      corroborateWith: [],
+    }).list();
+
+    const labels = found.map((c) => c.label).sort();
+    const missing = expected.filter((e) => !labels.includes(e));
+    if (missing.length) {
+      return record(name, "FAIL", `logs broken -> ${labels.length}/${expected.length}, missing ${missing.join(", ")}`);
+    }
+    record(name, "PASS", `all ${expected.length} recovered from resolver records with every log query failing`);
+  } catch (err) {
+    record(name, "FAIL", `discovery aborted instead of degrading: ${(err as Error)?.message ?? String(err)}`);
+  } finally {
+    proxy.close();
+  }
+}
+
+
+/**
+ * Gate 3d — the Substreams data-plane token is present, unexpired, and accepted.
+ *
+ * @remarks
+ * Third time a credential has existed under a plausible name and failed for the thing we needed:
+ * `OPENAI_KEY` the SDK never read, a `RAILWAY_TOKEN` that was simply invalid, and now a Subgraph
+ * Studio key that authenticates GraphQL queries perfectly and is rejected by Substreams with
+ * `invalid JWT token`. They are different credentials for different planes, and nothing about the
+ * name says so.
+ *
+ * These tokens also expire, which is the failure this gate mainly exists to catch: an expired JWT
+ * surfaces as a dead stream mid-demo rather than at preflight. The expiry claim is read locally
+ * (cheap, and catches the common case); a real stream call is attempted only when the `substreams`
+ * CLI is on PATH, and the gate says which of the two it actually managed.
+ */
+async function gate3d() {
+  const name = "Gate 3d Substreams token";
+  const token = process.env.SUBSTREAMS_API_TOKEN;
+  if (!token) {
+    return record(name, "BLOCKED", "SUBSTREAMS_API_TOKEN unset — run `substreams auth` (thegraph.market)");
+  }
+
+  // A JWT is three dot-separated base64url segments; anything else is the wrong kind of credential.
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return record(
+      name,
+      "FAIL",
+      "not a JWT — a Subgraph Studio key is not a Substreams data-plane token; run `substreams auth`",
+    );
+  }
+
+  let exp: number | undefined;
+  try {
+    const payload = JSON.parse(Buffer.from(parts[1]!, "base64url").toString("utf8")) as { exp?: number };
+    exp = payload.exp;
+  } catch {
+    return record(name, "FAIL", "JWT payload did not decode");
+  }
+  if (typeof exp !== "number") return record(name, "FAIL", "JWT carries no exp claim");
+
+  const secondsLeft = exp - Math.floor(Date.now() / 1000);
+  if (secondsLeft <= 0) {
+    return record(name, "FAIL", `token expired ${Math.abs(Math.round(secondsLeft / 3600))}h ago — re-run \`substreams auth\``);
+  }
+  const days = (secondsLeft / 86400).toFixed(1);
+
+  // Capability, where the tooling allows it: one block from a public package.
+  const { execFileSync } = await import("node:child_process");
+  let cli: string | undefined;
+  for (const candidate of ["substreams", `${process.env.HOME}/.local/bin/substreams`]) {
+    try { execFileSync(candidate, ["--version"], { stdio: "ignore" }); cli = candidate; break; } catch { /* keep looking */ }
+  }
+  if (!cli) {
+    return record(name, secondsLeft < 86_400 ? "FAIL" : "PASS", `valid JWT, ${days}d left (expiry checked; no CLI on PATH to test the stream)`);
+  }
+
+  try {
+    execFileSync(
+      cli,
+      ["run", "-e", "mainnet.eth.streamingfast.io:443",
+       "https://spkg.io/streamingfast/ethereum-common-v0.3.0.spkg", "all_events",
+       "-s", "21000000", "-t", "21000001"],
+      { stdio: "pipe", timeout: 60_000, env: { ...process.env, SUBSTREAMS_API_TOKEN: token } },
+    );
+    record(name, "PASS", `stream accepted the token, ${days}d until expiry`);
+  } catch (err) {
+    const out = String((err as { stderr?: Buffer }).stderr ?? (err as Error).message);
+    if (/Unauthenticated|invalid JWT/i.test(out)) {
+      return record(name, "FAIL", "endpoint rejected the token — re-run `substreams auth`");
+    }
+    record(name, "PASS", `valid JWT, ${days}d left (stream probe inconclusive: ${out.slice(0, 40).replace(/\s+/g, " ")})`);
+  }
+}
+
+
 async function main() {
   console.log("\nPhase 0 gates — every check hits a live system\n");
   await gate0();
@@ -746,8 +900,10 @@ async function main() {
   await gate2b();
   await gate2c();
   await gate2d();
+  await gate2e();
   await gate3();
   await gate3c();
+  await gate3d();
 
   const failed = results.filter((r) => r.status === "FAIL");
   const blocked = results.filter((r) => r.status === "BLOCKED");

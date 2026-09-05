@@ -49,23 +49,40 @@ cast call 0x4A1817d13E9cF196f471725176355C1234b63C70 \
   --rpc-url https://ethereum-sepolia-rpc.publicnode.com
 ```
 
-### A caveat you may see on the live page
+### Discovery runs on resolver recovery, not on the event log
 
 Public Sepolia RPC endpoints return **incomplete `eth_getLogs` results without erroring** — a
-different subset of matching events on different calls. Since the agent discovers the marketplace by
-replaying the registrar's `ServiceListed` events, this once showed a one-service catalogue while the
-chain held three. `eth_call` against the resolver was correct throughout; only historical log
-indexing was wrong.
+different subset of matching events on different calls. As of 5 September the endpoint this project
+reads returns **zero** of the registrar's three `ServiceListed` events, repeatably. `eth_call`
+against the resolver is correct throughout: only historical log indexing is broken, and it fails
+quietly.
 
-Discovery therefore corroborates the scan across several endpoints and re-verifies every candidate
-through the public ENS resolution path, dropping any the resolver does not back. When the log scan
-still comes back short, **the dashboard says so** — a panel in the service rail reads
-`INCOMPLETE EVENT LOG` and names the listings it had to recover. You may well see it; it is the
-system reporting its own dependency misbehaving, not a fault in the catalogue, and the three
-services are correct either way.
+So the catalogue you see is not being assembled from the event log. It is assembled by resolving
+every candidate name through the **public ENS resolution path** and keeping the ones the resolver
+actually backs. That is the load-bearing path today, not a fallback:
 
-`pnpm gates` fails outright if discovery finds fewer services than the deployment recorded. The
-measured numbers are in [`FEEDBACK/ENS.md`](FEEDBACK/ENS.md#5-public-rpc-endpoints-silently-return-an-incomplete-eth_getlogs-result).
+- Discovery corroborates the log scan across several endpoints on a hard deadline.
+- Every candidate — from the log or not — is read from the resolver and **dropped unless the chain
+  backs it**, so nothing can conjure a service that is not really listed, and a revoked one stays
+  revoked.
+- If **every** endpoint fails the log query, discovery treats that as zero events and rebuilds from
+  resolver records rather than aborting. `eth_getLogs` and `eth_call` fail independently, and a node
+  that serves state while erroring on logs should not take the catalogue down with it.
+- When the log scan comes back short, the dashboard says so — a panel in the service rail reads
+  `INCOMPLETE EVENT LOG` and names what it recovered. **You will probably see it.** It is the system
+  reporting its dependency failing, not a fault in the catalogue; the three services are correct
+  either way.
+
+Two gates hold this honest, and both hit live systems:
+
+| | |
+|---|---|
+| `Gate 2d` | fails if discovery finds fewer services than the deployment recorded |
+| `Gate 2e` | proxies a node that serves `eth_call` and errors every `eth_getLogs`, and fails unless all three are still recovered |
+
+The measured numbers — chunking at six block sizes, per-endpoint behaviour, and what each fix bought
+— are in [`FEEDBACK/ENS.md`](FEEDBACK/ENS.md#5-public-rpc-endpoints-silently-return-an-incomplete-eth_getlogs-result),
+reported upstream to ENS.
 
 ## The three layers
 

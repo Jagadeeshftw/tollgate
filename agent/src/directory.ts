@@ -94,6 +94,7 @@ export class EnsDirectory implements Directory {
 
   async list(): Promise<Candidate[]> {
     const fromBlock = this.config.fromBlock ?? 0n;
+    this.scanFailure = undefined;
 
     const [listed, revoked] = await Promise.all([
       this.scan(REGISTRAR_ABI[0], fromBlock),
@@ -128,7 +129,17 @@ export class EnsDirectory implements Directory {
     // Surfaced rather than swallowed: if the log scan under-reported, the operator needs to know
     // the RPC is lying, and the UI needs to be able to say so instead of showing a smaller market.
     const recovered = found.filter((c) => hinted.includes(c.label)).map((c) => c.label);
-    this.lastScan = { fromLogs: discovered.length, recovered };
+    this.lastScan = {
+      fromLogs: discovered.length,
+      recovered,
+      ...(this.scanFailure ? { scanFailed: this.scanFailure } : {}),
+    };
+    if (this.scanFailure) {
+      console.warn(
+        `[directory] every endpoint failed the log query (${this.scanFailure}); the catalogue was ` +
+          `rebuilt from resolver records alone`,
+      );
+    }
     if (recovered.length) {
       console.warn(
         `[directory] ${recovered.length} listing(s) missing from the event scan and recovered by ` +
@@ -140,7 +151,13 @@ export class EnsDirectory implements Directory {
   }
 
   /** How the most recent `list()` was assembled. Read by the UI to report incomplete discovery. */
-  lastScan: { fromLogs: number; recovered: string[] } = { fromLogs: 0, recovered: [] };
+  lastScan: { fromLogs: number; recovered: string[]; scanFailed?: string } = {
+    fromLogs: 0,
+    recovered: [],
+  };
+
+  /** Set when every endpoint failed the log query; cleared at the start of each `list()`. */
+  private scanFailure: string | undefined;
 
   /**
    * Read one event type from every endpoint and union the results.
@@ -181,10 +198,19 @@ export class EnsDirectory implements Directory {
 
     const ok = settled.filter((r) => r.status === "fulfilled");
     if (ok.length === 0) {
-      const why = settled
-        .map((r) => (r.status === "rejected" ? String((r.reason as Error)?.message ?? r.reason) : ""))
-        .find(Boolean);
-      throw new Error(`no Sepolia endpoint could be reached to read the catalogue: ${why ?? ""}`);
+      // Zero events, not a fatal error.
+      //
+      // A total log-scan failure used to abort discovery outright, which threw away a catalogue the
+      // resolver could still have rebuilt: `eth_getLogs` and `eth_call` fail independently, and an
+      // endpoint that errors on the former while serving the latter is exactly the case worth
+      // surviving. If the resolver is genuinely unreachable too, `read()` below still throws and the
+      // caller still learns the catalogue is unavailable — so this widens availability without
+      // hiding an outage.
+      this.scanFailure =
+        settled
+          .map((r) => (r.status === "rejected" ? String((r.reason as Error)?.message ?? r.reason) : ""))
+          .find(Boolean) ?? "every endpoint failed the log query";
+      return [];
     }
 
     // Keyed by transaction hash and log index so the same event from two providers merges to one.
