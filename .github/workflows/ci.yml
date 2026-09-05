@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Typecheck every package
+        run: pnpm -r --if-present typecheck
+
+      - name: Unit and integration tests
+        # Deliberately not the e2e suites: those spend real HBAR and need credentials, so they
+        # cannot run on a fork or a public PR. What is covered here is everything that does not
+        # require a funded account — the decision policy, metering, the ENS-price seam, and the
+        # loop's guard rails.
+        run: pnpm -r --if-present test
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Install forge-std if absent
+        # `contracts/lib/` is gitignored, so a fresh checkout has no forge-std. It is registered as
+        # a submodule (see spec/COMMIT-PLAN.md), but this keeps CI working even if the submodule is
+        # missing or the checkout was shallow — a dependency that only exists on one machine is not
+        # a dependency, it is a local accident.
+        run: |
+          if [ ! -d contracts/lib/forge-std ]; then
+            git clone --depth 1 https://github.com/foundry-rs/forge-std.git contracts/lib/forge-std
+          fi
+
+      - name: Build contracts
+        run: forge build --root contracts
+
+      - name: Fork tests against live ENSv2 on Sepolia
+        # These fork a public endpoint rather than mocking, so they verify our registrar against
+        # the ENSv2 beta as actually deployed. No key required — Sepolia reads are unauthenticated.
+        env:
+          SEPOLIA_RPC_URL: https://ethereum-sepolia-rpc.publicnode.com
+        run: forge test --root contracts
