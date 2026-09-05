@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+/**
+ * The approved palette, as Tailwind v4 theme tokens.
+ *
+ * The rule the whole surface is built on: arithmetic is furniture — hairlines, mono, no fill, no
+ * colour. Judgment is the only place colour appears. `--color-judgment` is therefore the single
+ * accent on the dashboard, and anything that isn't a model decision must not use it.
+ *
+ * Deliberately single-theme. This is a trace console read in a dark room and filmed at 720p; a
+ * light variant would be a second design, not a token swap.
+ */
+@theme {
+  --color-ground: #0a0e13;
+  --color-surface: #121821;
+  --color-raised: #161e28;
+  --color-rule: #1e2833;
+  --color-rule-lit: #2b3947;
+  --color-ink: #e3e9ef;
+  --color-muted: #7c8b9a;
+  --color-dim: #4a5766;
+  --color-judgment: #e8b04b;
+  --color-good: #57c79a;
+  --color-bad: #e2685f;
+
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Landing page only. Aceternity ships components that reference these utilities but not the
+     keyframes themselves, so a missing definition renders as a static gradient rather than an
+     error — they are declared here on purpose. */
+  --animate-aurora: aurora 60s linear infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+}
+
+@keyframes aurora {
+  from { background-position: 50% 50%, 50% 50%; }
+  to   { background-position: 350% 50%, 350% 50%; }
+}
+@keyframes shimmer {
+  from { background-position: 0 0; }
+  to   { background-position: -200% 0; }
+}
+
+:root { color-scheme: dark; }
+
+html, body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers that sit in columns must line up — every on-chain value is mono and tabular. */
+.tnum { font-variant-numeric: tabular-nums; }
+
+*:focus-visible {
+  outline: 2px solid var(--color-judgment);
+  outline-offset: 2px;
+}
