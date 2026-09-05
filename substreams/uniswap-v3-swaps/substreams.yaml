@@ -1,0 +1,28 @@
+specVersion: v0.1.0
+package:
+  name: uniswap_v3_swaps
+  version: v0.1.0
+  url: https://github.com/Jagadeeshftw/tollgate
+  description: Decoded Uniswap V3 swaps on Ethereum mainnet
+
+network: mainnet
+
+protobuf:
+  files:
+    - swaps.proto
+  importPaths:
+    - ./proto
+
+binaries:
+  default:
+    type: wasm/rust-v1
+    file: ./target/wasm32-unknown-unknown/release/uniswap_v3_swaps.wasm
+
+modules:
+  - name: map_swaps
+    kind: map
+    initialBlock: 21000000
+    inputs:
+      - source: sf.ethereum.type.v2.Block
+    output:
+      type: proto:tollgate.uniswap_v3.v1.Swaps

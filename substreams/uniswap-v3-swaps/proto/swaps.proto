@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+package tollgate.uniswap_v3.v1;
+
+// One decoded Uniswap V3 Swap. Every numeric that can exceed 64 bits is a decimal string:
+// amount0/amount1 are int256 and routinely exceed u64, and truncating them would silently
+// misreport volume.
+message Swap {
+  string pool = 1;
+  string sender = 2;
+  string recipient = 3;
+  string amount0 = 4;
+  string amount1 = 5;
+  string sqrt_price_x96 = 6;
+  string liquidity = 7;
+  int32 tick = 8;
+  uint64 block_number = 9;
+  int64 block_timestamp = 10;
+  string tx_hash = 11;
+  uint32 log_index = 12;
+}
+
+message Swaps {
+  repeated Swap swaps = 1;
+}

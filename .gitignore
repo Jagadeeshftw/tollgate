@@ -3,6 +3,7 @@ dist/
 out/
 cache/
 .env
+.substreams.env
 .env.local
 *.log
 .DS_Store

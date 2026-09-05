@@ -1,0 +1,20 @@
+[package]
+name = "uniswap_v3_swaps"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+substreams = "0.7"
+substreams-ethereum = "0.11"
+prost = "0.13"
+prost-types = "0.13"
+hex = "0.4"
+hex-literal = "0.4"
+
+[lib]
+crate-type = ["cdylib"]
+
+[profile.release]
+lto = true
+opt-level = "s"
+strip = "debuginfo"
