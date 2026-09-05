@@ -1,0 +1,259 @@
+{
+  "recordedAt": "2026-09-01T00:00:00Z",
+  "note": "A real hosted run against the live Sepolia registry and the deployed service. One purchase of 0.01 HBAR settled on Hedera testnet; six pools were excluded from the ranking because their reported TVL contradicted their own traded volume.",
+  "events": [
+    {
+      "type": "question",
+      "question": "what are the top uniswap pools by TVL right now?",
+      "budget": "0.02",
+      "asset": "0.0.0"
+    },
+    {
+      "type": "discovered",
+      "candidates": [
+        {
+          "label": "uniswap-pools",
+          "name": "uniswap-pools.tollgatehq.eth",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only.",
+          "endpoint": "https://tollgate-service-production.up.railway.app/s/uniswap-pools",
+          "unitPrice": "0.001",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        },
+        {
+          "label": "dex-pools",
+          "name": "dex-pools.tollgatehq.eth",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "endpoint": "https://tollgate-service-production.up.railway.app/s/dex-pools",
+          "unitPrice": "0.003",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        },
+        {
+          "label": "curve-pools",
+          "name": "curve-pools.tollgatehq.eth",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically.",
+          "endpoint": "https://tollgate-service-production.up.railway.app/s/curve-pools",
+          "unitPrice": "0.002",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        }
+      ]
+    },
+    {
+      "type": "policy:plans",
+      "affordable": [
+        {
+          "label": "uniswap-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.003 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only."
+        },
+        {
+          "label": "curve-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.006 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically."
+        },
+        {
+          "label": "dex-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.009 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.01 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only."
+        },
+        {
+          "label": "curve-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.02 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically."
+        }
+      ],
+      "excluded": [
+        {
+          "label": "uniswap-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.025 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only.",
+          "because": "costs 0.025 HBAR, budget has 0.02"
+        },
+        {
+          "label": "dex-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.03 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "because": "costs 0.03 HBAR, budget has 0.02"
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only.",
+          "because": "costs 0.05 HBAR, budget has 0.02"
+        },
+        {
+          "label": "curve-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically.",
+          "because": "costs 0.05 HBAR, budget has 0.02"
+        },
+        {
+          "label": "dex-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.075 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "because": "costs 0.075 HBAR, budget has 0.02"
+        },
+        {
+          "label": "curve-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.1 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically.",
+          "because": "costs 0.1 HBAR, budget has 0.02"
+        },
+        {
+          "label": "dex-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.15 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "because": "costs 0.15 HBAR, budget has 0.02"
+        }
+      ],
+      "remaining": "0.02 HBAR"
+    },
+    {
+      "type": "decision:select",
+      "chose": "uniswap-pools",
+      "rejected": [
+        {
+          "label": "uniswap-pools (3 pools) — option 0",
+          "because": "Only returns the top 3 pools. The user asked for the top pools without specifying count; top 10 is a more useful, conventional choice and still affordable."
+        },
+        {
+          "label": "curve-pools (3 pools) — option 1",
+          "because": "Curve-specific (stableswap) pools, not Uniswap; wrong protocol for this question."
+        },
+        {
+          "label": "dex-pools (3 pools) — option 2",
+          "because": "Covers many DEXes in a standardized schema. Overbroad for a Uniswap-only question and slightly more expensive per pool."
+        },
+        {
+          "label": "curve-pools (10 pools) — option 4",
+          "because": "Curve-specific and unrelated to Uniswap; also costs the full remaining budget for the wrong protocol."
+        }
+      ],
+      "reasoning": "Option 3 (uniswap-pools, 10 pools) directly answers the question — it returns the top Uniswap v3 pools by TVL live from The Graph and provides more results (top 10) so the user gets a clear ranking rather than just the top 3. It's the cheapest option that gives a fuller “top pools” list for an unspecified N."
+    },
+    {
+      "type": "decision:size",
+      "units": 10,
+      "unit": "pool",
+      "reasoning": "Top 10 is a common, useful cutoff for “top pools” and gives enough breadth to show the leading Uniswap v3 liquidity without paying for excessive rows. The 10-pool option is still inexpensive and avoids truncating the ranking at only three pools."
+    },
+    {
+      "type": "decision:authorize",
+      "approved": true,
+      "cost": "0.01 HBAR",
+      "ceiling": "0.02 HBAR",
+      "remaining": "0.02 HBAR",
+      "reasoning": "This answer is worth paying for because it directly and precisely resolves the user’s request with live on-chain data. Valuing a timely top-10 Uniswap TVL snapshot at 0.02 HBAR is reasonable given the need for accuracy and the small absolute cost."
+    },
+    {
+      "type": "quote",
+      "endpoint": "https://tollgate-service-production.up.railway.app/s/uniswap-pools?limit=10",
+      "amount": "0.01 HBAR",
+      "asset": "0.0.0",
+      "payTo": "0.0.10319209"
+    },
+    {
+      "type": "payment",
+      "transactionId": "0.0.7162784@1788359295.994467023",
+      "amount": "0.01 HBAR",
+      "hashscanUrl": "https://hashscan.io/testnet/transaction/0.0.7162784@1788359295.994467023"
+    },
+    {
+      "type": "received",
+      "units": 10,
+      "bytes": 9486
+    },
+    {
+      "type": "data:excluded",
+      "rule": "Pools whose reported TVL exceeds 10x their lifetime traded volume are excluded from the ranking — that ratio is not physically plausible and indicates a decimals error in the source. Every excluded pool is listed below with its figures, so nothing is hidden. No value is ever rewritten.",
+      "rows": [
+        {
+          "label": "WETH/YES",
+          "reported": "TVL $9.45e+10",
+          "reason": "reported TVL $9.45e+10 is 184,345x its lifetime traded volume of $5.13e+5 — the TVL figure is not credible"
+        },
+        {
+          "label": "PIXFI/WETH",
+          "reported": "TVL $2.74e+10",
+          "reason": "reported TVL $2.74e+10 is 51,026x its lifetime traded volume of $5.37e+5 — the TVL figure is not credible"
+        },
+        {
+          "label": "HLF/WETH",
+          "reported": "TVL $8.40e+9",
+          "reason": "reported TVL $8.40e+9 is 9,070x its lifetime traded volume of $9.26e+5 — the TVL figure is not credible"
+        },
+        {
+          "label": "HNZE/WETH",
+          "reported": "TVL $3.15e+9",
+          "reason": "reported TVL $3.15e+9 is 6,756x its lifetime traded volume of $4.66e+5 — the TVL figure is not credible"
+        },
+        {
+          "label": "HONG/WETH",
+          "reported": "TVL $4.95e+8",
+          "reason": "reported TVL $4.95e+8 is 1,539x its lifetime traded volume of $3.21e+5 — the TVL figure is not credible"
+        },
+        {
+          "label": "NECROMANCER/WETH",
+          "reported": "TVL $2.32e+8",
+          "reason": "reported TVL $2.32e+8 is 923x its lifetime traded volume of $2.52e+5 — the TVL figure is not credible"
+        }
+      ]
+    },
+    {
+      "type": "decision:assess",
+      "verdict": "sufficient",
+      "reasoning": "The purchased data contains the subgraph's ordered top pools (head of ordering by totalValueLockedUSD) and provenance explaining exclusions for obviously erroneous TVL values. It therefore supports answering which Uniswap pools have the highest TVL per that Messari/The Graph index (Uniswap V3 on Ethereum). Caveats: this is the Messari-standardized subgraph view (live from The Graph) and excludes pools the subgraph flagged as having implausible TVL/volume ratios; it appears limited to the pools that particular Uniswap V3 subgraph has indexed (Ethereum deployment shown)."
+    },
+    {
+      "type": "answer",
+      "text": "Top Uniswap pools by TVL (from the supplied Messari/The Graph Uniswap V3 subgraph, descending):\n1) Uniswap V3 Wrapped Ether / Tether USD (WETH/USDT) 0.3% — $114,589,798.50\n2) Uniswap V3 USD Coin / Wrapped Ether (USDC/WETH) 0.05% — $107,371,700.11\n3) Uniswap V3 Santa / USD Coin (SANTA/USDC) 0.01% — $50,005,685.71\n4) Uniswap V3 Tether USD / Onjai (USDT/ONJAI) 0.01% — $50,005,487.34\n5) Uniswap V3 URL / Tether USD (URL/USDT) 0.01% — $50,001,365.48\n6) Uniswap V3 HKD Mapped Token / USD Mapped Token (HKDM/USDM) 0.01% — $45,042,449.74\n7) Uniswap V3 Wrapped BTC / Wrapped Ether (WBTC/WETH) 0.3% — $41,322,709.06\n8) Uniswap V3 Wrapped BTC / Kraken Wrapped Bitcoin (WBTC/kBTC) 0.01% — $35,436,734.50\n9) Uniswap V3 Wrapped BTC / Wrapped Ether (WBTC/WETH) 0.05% — $35,191,300.73\n10) Uniswap V3 Whiteheart Token / Wrapped Ether (WHITE/WETH) 0.01% — $34,201,872.56\n\nIf you need a cross-check against other Uniswap deployments/chains or a larger ranked list, additional data would be helpful.",
+      "spent": "0.01 HBAR"
+    }
+  ]
+}

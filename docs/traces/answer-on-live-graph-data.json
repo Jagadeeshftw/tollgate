@@ -1,0 +1,191 @@
+{
+  "recordedAt": "2026-09-01T17:47:50.500Z",
+  "question": "what are the top uniswap pools by TVL right now?",
+  "provider": "openai/gpt-5-mini",
+  "note": "Real run against live infrastructure: forked Sepolia, real ENS records, real HBAR settled on Hedera testnet, live data from The Graph.",
+  "answered": true,
+  "spentTinybar": "1000000",
+  "purchases": [
+    {
+      "label": "uniswap-pools",
+      "units": 10,
+      "transactionId": "0.0.7162784@1788284830.121678872"
+    }
+  ],
+  "events": [
+    {
+      "type": "question",
+      "question": "what are the top uniswap pools by TVL right now?",
+      "budget": "0.05",
+      "asset": "0.0.0"
+    },
+    {
+      "type": "discovered",
+      "candidates": [
+        {
+          "label": "uniswap-pools",
+          "name": "uniswap-pools.tollgate.eth",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed.",
+          "endpoint": "http://127.0.0.1:50358/s/uniswap-pools",
+          "unitPrice": "0.001",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        },
+        {
+          "label": "dex-pools",
+          "name": "dex-pools.tollgate.eth",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "endpoint": "http://127.0.0.1:50358/s/dex-pools",
+          "unitPrice": "0.003",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        }
+      ]
+    },
+    {
+      "type": "policy:plans",
+      "affordable": [
+        {
+          "label": "uniswap-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.003 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "dex-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.009 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.01 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.025 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "dex-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.03 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        }
+      ],
+      "excluded": [
+        {
+          "label": "dex-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.075 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "because": "costs 0.075 HBAR, budget has 0.05"
+        },
+        {
+          "label": "dex-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.15 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "because": "costs 0.15 HBAR, budget has 0.05"
+        }
+      ],
+      "remaining": "0.05 HBAR"
+    },
+    {
+      "type": "decision:select",
+      "chose": "uniswap-pools",
+      "rejected": [
+        {
+          "label": "uniswap-pools (3 pools) [option 0]",
+          "because": "Only returns top 3 pools; too few for a typical \"top pools\" request where users generally expect at least a top 10."
+        },
+        {
+          "label": "dex-pools (3 pools) [option 1]",
+          "because": "Covers multiple DEXes when the question is Uniswap-specific, and is more expensive per pool. Unnecessary breadth and higher unit cost."
+        },
+        {
+          "label": "uniswap-pools (25 pools) [option 3]",
+          "because": "Provides more Uniswap pools than needed (25) at higher cost. The extra rows aren't required to answer a straightforward \"top\" question."
+        },
+        {
+          "label": "dex-pools (10 pools) [option 4]",
+          "because": "Cross-protocol dataset while the question is Uniswap-only, and it costs 3x per-pool compared with the Uniswap-only feed."
+        },
+        {
+          "label": "uniswap-pools (50 pools) [option 5]",
+          "because": "Provides far more results than necessary (50) and uses the entire remaining budget; overkill for a top pools query."
+        }
+      ],
+      "reasoning": "The question explicitly asks for top Uniswap pools by TVL. The uniswap-pools feed returns exactly that (Uniswap v3 only) and the 10-pool bundle gives a reasonable, commonly expected \"top 10\" result at low cost. No need to pay for cross-protocol coverage."
+    },
+    {
+      "type": "decision:size",
+      "units": 10,
+      "unit": "pool",
+      "reasoning": "Top 10 is a standard, user-expected cutoff for \"top pools\" queries: it reveals the leading pools while keeping cost low. Ten pools are sufficient to identify the current market leaders and any near-competitive pools."
+    },
+    {
+      "type": "decision:authorize",
+      "approved": true,
+      "cost": "0.01 HBAR",
+      "ceiling": "0.02 HBAR",
+      "remaining": "0.05 HBAR",
+      "reasoning": "The data costs 0.01 HBAR and directly answers the question with timely on-chain TVL figures. That's inexpensive relative to the value of an accurate, current top-10 list; I value this specific answer at 0.02 HBAR (double the purchase price) given its utility."
+    },
+    {
+      "type": "quote",
+      "endpoint": "http://127.0.0.1:50358/s/uniswap-pools?limit=10",
+      "amount": "0.01 HBAR",
+      "asset": "0.0.0",
+      "payTo": "0.0.10319209"
+    },
+    {
+      "type": "payment",
+      "transactionId": "0.0.7162784@1788284830.121678872",
+      "amount": "0.01 HBAR",
+      "hashscanUrl": "https://hashscan.io/testnet/transaction/0.0.7162784@1788284830.121678872"
+    },
+    {
+      "type": "received",
+      "units": 10,
+      "bytes": 8781
+    },
+    {
+      "type": "decision:assess",
+      "verdict": "sufficient",
+      "reasoning": "The purchased dataset contains a live Messari/The Graph snapshot of Uniswap V3 pools (10 pools). That is enough to report the top 10 pools by TVL from this source right now. Limitations: only 10 pools were fetched (so this answers “top 10” from this feed, not the entire Uniswap universe beyond those rows), and a small set of pools with implausible TVL values were explicitly excluded by the provider (those exclusions are listed in the provenance). The data is from The Graph via Messari (subgraph block 25884022) and appears sorted by TVL in the returned rows, so the ranking below reflects the snapshot you purchased."
+    },
+    {
+      "type": "answer",
+      "text": "Top Uniswap pools by TVL (from the purchased Messari/The Graph snapshot, ranked):\n\n1) Uniswap V3 Wrapped Ether / Tether USD (0.3%) — $115,073,335.62\n2) Uniswap V3 USD Coin / Wrapped Ether (0.05%) — $107,620,556.69\n3) Uniswap V3 POO / Tether USD (0.01%) — $50,019,057.84\n4) Uniswap V3 Santa / USD Coin (0.01%) — $50,005,685.71\n5) Uniswap V3 Tether USD / Onjai (0.01%) — $50,005,487.34\n6) Uniswap V3 URL / Tether USD (0.01%) — $50,001,365.48\n7) Uniswap V3 HKD Mapped Token / USD Mapped Token (0.01%) — $45,042,449.74\n8) Uniswap V3 Wrapped BTC / Wrapped Ether (0.3%) — $41,758,438.54\n9) Uniswap V3 Wrapped BTC / Kraken Wrapped Bitcoin (0.01%) — $35,846,487.39\n10) Uniswap V3 Wrapped BTC / Wrapped Ether (0.05%) — $35,555,665.96\n\n(These figures are from the purchased snapshot; to expand beyond these 10 pools or get a refreshed snapshot would require fetching more data.)",
+      "spent": "0.01 HBAR"
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "recordedAt": "2026-09-02T00:00:00Z",
+  "note": "A real hosted run. Six plans were affordable within the budget and the agent bought none of them: the catalogue sells pool TVL, and the question asked for a price. Nothing was spent.",
+  "events": [
+    {
+      "type": "question",
+      "question": "what is the current price of ETH?",
+      "budget": "0.02",
+      "asset": "0.0.0"
+    },
+    {
+      "type": "discovered",
+      "candidates": [
+        {
+          "label": "uniswap-pools",
+          "name": "uniswap-pools.tollgatehq.eth",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only.",
+          "endpoint": "https://tollgate-service-production.up.railway.app/s/uniswap-pools",
+          "unitPrice": "0.001",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        },
+        {
+          "label": "dex-pools",
+          "name": "dex-pools.tollgatehq.eth",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "endpoint": "https://tollgate-service-production.up.railway.app/s/dex-pools",
+          "unitPrice": "0.003",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        },
+        {
+          "label": "curve-pools",
+          "name": "curve-pools.tollgatehq.eth",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically.",
+          "endpoint": "https://tollgate-service-production.up.railway.app/s/curve-pools",
+          "unitPrice": "0.002",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        }
+      ]
+    },
+    {
+      "type": "policy:plans",
+      "affordable": [
+        {
+          "label": "uniswap-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.003 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only."
+        },
+        {
+          "label": "curve-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.006 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically."
+        },
+        {
+          "label": "dex-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.009 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.01 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only."
+        },
+        {
+          "label": "curve-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.02 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically."
+        }
+      ],
+      "excluded": [
+        {
+          "label": "uniswap-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.025 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only.",
+          "because": "costs 0.025 HBAR, budget has 0.02"
+        },
+        {
+          "label": "dex-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.03 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "because": "costs 0.03 HBAR, budget has 0.02"
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL, live from The Graph. Uniswap only.",
+          "because": "costs 0.05 HBAR, budget has 0.02"
+        },
+        {
+          "label": "curve-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically.",
+          "because": "costs 0.05 HBAR, budget has 0.02"
+        },
+        {
+          "label": "dex-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.075 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "because": "costs 0.075 HBAR, budget has 0.02"
+        },
+        {
+          "label": "curve-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.1 HBAR",
+          "unitPrice": "0.002 HBAR",
+          "context": "Curve Finance pools by TVL, live from The Graph. Stableswap pools specifically.",
+          "because": "costs 0.1 HBAR, budget has 0.02"
+        },
+        {
+          "label": "dex-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.15 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX under one standardized schema. Use when the question spans protocols rather than naming one.",
+          "because": "costs 0.15 HBAR, budget has 0.02"
+        }
+      ],
+      "remaining": "0.02 HBAR"
+    },
+    {
+      "type": "decision:select",
+      "chose": "(none)",
+      "rejected": [
+        {
+          "label": "[0] uniswap-pools (3 pools, 0.003 HBAR)",
+          "because": "Returns only {id, protocol, tvlUSD}. Even if Uniswap pools include ETH pairs, tvlUSD alone doesn't provide token reserves or pair price; you cannot derive current ETH price reliably from tvlUSD."
+        },
+        {
+          "label": "[1] curve-pools (3 pools, 0.006 HBAR)",
+          "because": "Curve stableswap pools are focused on stablecoins and return only tvlUSD. They generally don't provide an ETH price signal and the response shape lacks reserves/prices, so useless for ETH price."
+        },
+        {
+          "label": "[2] dex-pools (3 pools, 0.009 HBAR)",
+          "because": "Although broader (multiple DEXes), this also only returns tvlUSD per pool. Breadth doesn't help because the required fields (token reserves or price) are missing."
+        },
+        {
+          "label": "[3] uniswap-pools (10 pools, 0.01 HBAR)",
+          "because": "Same data limitations as option 0; buying more Uniswap pools doesn't help because none of the responses include reserves or token price."
+        },
+        {
+          "label": "[4] curve-pools (10 pools, 0.02 HBAR)",
+          "because": "Same as option 1 and expensive; Curve stableswap tvl data won't produce ETH price and is the most costly of the set."
+        }
+      ],
+      "reasoning": "None of the available on-chain data products actually return token prices or pool reserves — they only return pool IDs and tvlUSD. That data is insufficient to compute a live ETH price. Therefore it's correct to buy nothing from these options and instead use a price feed / oracle or a data source that returns token prices or pair reserves."
+    },
+    {
+      "type": "declined",
+      "reason": "The question is simple and low-value: current ETH price can be obtained from numerous free price APIs (CoinGecko, on-chain oracles, aggregated DEX price endpoints). Spending any of the available HBAR on these pool-TV L datasets would not answer the question, so it's not worth purchasing them.",
+      "spent": "0 HBAR"
+    }
+  ]
+}

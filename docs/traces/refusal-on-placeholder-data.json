@@ -1,0 +1,298 @@
+{
+  "recordedAt": "2026-09-01T16:01:43.082Z",
+  "question": "what are the top uniswap pools right now?",
+  "provider": "openai/gpt-5-mini",
+  "note": "Real run against live infrastructure: forked Sepolia, real ENS records, real HBAR settled on Hedera testnet. The data source was the Phase 4 placeholder, which the agent identified and refused to answer on.",
+  "answered": false,
+  "spentTinybar": "1000000",
+  "purchases": [
+    {
+      "label": "uniswap-pools",
+      "units": 10,
+      "transactionId": "0.0.7162784@1788278442.283807208"
+    }
+  ],
+  "events": [
+    {
+      "type": "question",
+      "question": "what are the top uniswap pools right now?",
+      "budget": "0.05",
+      "asset": "0.0.0"
+    },
+    {
+      "type": "discovered",
+      "candidates": [
+        {
+          "label": "uniswap-pools",
+          "name": "uniswap-pools.tollgate.eth",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed.",
+          "endpoint": "http://127.0.0.1:61365/s/uniswap-pools",
+          "unitPrice": "0.001",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        },
+        {
+          "label": "dex-pools",
+          "name": "dex-pools.tollgate.eth",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "endpoint": "http://127.0.0.1:61365/s/dex-pools",
+          "unitPrice": "0.003",
+          "unit": "pool",
+          "asset": "0.0.0",
+          "schema": "{pools:[{id,protocol,tvlUSD}]}"
+        }
+      ]
+    },
+    {
+      "type": "policy:plans",
+      "affordable": [
+        {
+          "label": "uniswap-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.003 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "dex-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.009 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.01 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.025 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "dex-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.03 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        }
+      ],
+      "excluded": [
+        {
+          "label": "dex-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.075 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "because": "costs 0.075 HBAR, budget has 0.05"
+        },
+        {
+          "label": "dex-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.15 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "because": "costs 0.15 HBAR, budget has 0.05"
+        }
+      ],
+      "remaining": "0.05 HBAR"
+    },
+    {
+      "type": "decision:select",
+      "chose": "uniswap-pools",
+      "rejected": [
+        {
+          "label": "Option 0 — uniswap-pools (3 pools)",
+          "because": "Only returns top 3 pools; too small if the user expects a broader “top” list (top 10 is a common expectation) and extra rows are inexpensive to obtain."
+        },
+        {
+          "label": "Option 1 — dex-pools (3 pools)",
+          "because": "Covers multiple DEX protocols and is more expensive per pool; the question is Uniswap-specific so cross-protocol coverage is unnecessary and adds cost."
+        },
+        {
+          "label": "Option 3 — uniswap-pools (25 pools)",
+          "because": "Provides more breadth than requested (25 vs likely-needed top 10) at 2.5x the cost of the 10-pool package — unnecessary for a simple ‘top pools’ answer."
+        },
+        {
+          "label": "Option 4 — dex-pools (10 pools)",
+          "because": "While 10 pools is the right quantity, this dataset mixes protocols and costs 3x per pool versus the Uniswap-specific feed; unnecessary extra scope for this Uniswap-only question."
+        },
+        {
+          "label": "Option 5 — uniswap-pools (50 pools)",
+          "because": "Full 50 is overkill for a brief ‘top pools’ answer and spends the entire budget (0.05 HBAR) when a 10-pool result suffices."
+        }
+      ],
+      "reasoning": "The question specifically asks for the top Uniswap pools. The uniswap-pools feed targets Uniswap v3 only (exact match) and is the cheapest source that provides that data. The 10-pool package gives a standard “top 10” list which matches typical expectations for “top pools.”"
+    },
+    {
+      "type": "decision:size",
+      "units": 10,
+      "unit": "pool",
+      "reasoning": "Top 10 pools is a conventional and useful definition of “top” (gives enough context for rankings and comparison without extraneous data). It balances cost and completeness: 10 pools will capture leading pools and their TVL while keeping price low."
+    },
+    {
+      "type": "decision:authorize",
+      "approved": true,
+      "cost": "0.01 HBAR",
+      "ceiling": "0.02 HBAR",
+      "remaining": "0.05 HBAR",
+      "reasoning": "The requested information is moderately valuable (quick market snapshot). Paying 0.01 HBAR is small and provides a clear, targeted answer; I wouldn’t pay more than 0.02 HBAR for this specific question, since additional rows or cross-protocol data aren’t necessary."
+    },
+    {
+      "type": "quote",
+      "endpoint": "http://127.0.0.1:61365/s/uniswap-pools?limit=10",
+      "amount": "0.01 HBAR",
+      "asset": "0.0.0",
+      "payTo": "0.0.10319209"
+    },
+    {
+      "type": "payment",
+      "transactionId": "0.0.7162784@1788278442.283807208",
+      "amount": "0.01 HBAR",
+      "hashscanUrl": "https://hashscan.io/testnet/transaction/0.0.7162784@1788278442.283807208"
+    },
+    {
+      "type": "received",
+      "units": 10,
+      "bytes": 819
+    },
+    {
+      "type": "decision:assess",
+      "verdict": "insufficient",
+      "reasoning": "The purchased data lists 10 Uniswap V3 pools with TVL values, but it is explicitly marked as placeholder data (\"PLACEHOLDER DATA — the live Graph layer lands in Phase 4\") and therefore not verifiable or genuinely current. Important missing pieces for a usable answer: human-readable pool identifiers (token pair names or pool addresses), chain/context, timestamp (so we can say \"right now\"), and confirmation that values are live. Because the dataset is placeholder and lacks identifying fields, it cannot be trusted to answer the user's question about the top Uniswap pools currently. Buying real, live Uniswap-pools data that includes token0/token1 (symbols or addresses), TVL, and a timestamp (the smallest useful slice is the top ~10–20 pools with those fields) would genuinely help. Note: budget remaining is 0.04 HBAR so no further purchase is possible now."
+    },
+    {
+      "type": "policy:plans",
+      "affordable": [
+        {
+          "label": "uniswap-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.003 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "dex-pools",
+          "units": 3,
+          "unit": "pool",
+          "cost": "0.009 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.01 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "uniswap-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.025 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed."
+        },
+        {
+          "label": "dex-pools",
+          "units": 10,
+          "unit": "pool",
+          "cost": "0.03 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols."
+        }
+      ],
+      "excluded": [
+        {
+          "label": "uniswap-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.05 HBAR",
+          "unitPrice": "0.001 HBAR",
+          "context": "Top Uniswap v3 pools by TVL. Uniswap only, nothing else indexed.",
+          "because": "costs 0.05 HBAR, budget has 0.04"
+        },
+        {
+          "label": "dex-pools",
+          "units": 25,
+          "unit": "pool",
+          "cost": "0.075 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "because": "costs 0.075 HBAR, budget has 0.04"
+        },
+        {
+          "label": "dex-pools",
+          "units": 50,
+          "unit": "pool",
+          "cost": "0.15 HBAR",
+          "unitPrice": "0.003 HBAR",
+          "context": "Pools across every indexed DEX — Uniswap, Curve, Balancer and others — under one standardized schema. Use when the question spans protocols.",
+          "because": "costs 0.15 HBAR, budget has 0.04"
+        }
+      ],
+      "remaining": "0.04 HBAR"
+    },
+    {
+      "type": "decision:select",
+      "chose": "(none)",
+      "rejected": [
+        {
+          "label": "uniswap-pools (3 pools) [option 0]",
+          "because": "Contains only 3 pools (too few to represent the 'top' list reliably) and is redundant because the session already has 10 Uniswap pools."
+        },
+        {
+          "label": "dex-pools (3 pools) [option 1]",
+          "because": "Covers multiple DEXs (Uniswap, Curve, Balancer, etc.) when the question is Uniswap-specific, and costs more per pool than the Uniswap-only options. Also redundant with already-purchased Uniswap data."
+        },
+        {
+          "label": "uniswap-pools (10 pools) [option 2]",
+          "because": "This matches the data already purchased (10 Uniswap pools). Buying it again would duplicate data and spend 0.01 HBAR unnecessarily."
+        },
+        {
+          "label": "uniswap-pools (25 pools) [option 3]",
+          "because": "Provides more breadth (25 pools) than asked for and costs 0.025 HBAR. Unnecessary because the session already includes the top 10 Uniswap pools."
+        },
+        {
+          "label": "dex-pools (10 pools) [option 4]",
+          "because": "Covers multiple protocols at a higher total cost (0.03 HBAR) and is broader than needed for a Uniswap-only question. Redundant given existing Uniswap-only purchase."
+        }
+      ],
+      "reasoning": "No additional purchase is needed: this session has already bought 10 Uniswap pools (top Uniswap v3 pools by TVL), which directly answers 'what are the top uniswap pools right now'. Buying another plan would be redundant. If extra data were required, I'd pick the Uniswap-specific 10-pool option as the cheapest exact match."
+    },
+    {
+      "type": "decision:assess",
+      "verdict": "insufficient",
+      "reasoning": "What the data does: you bought 10 Uniswap pools with TVL figures, so this dataset could in principle identify the top-10 pools by TVL from that (placeholder) source. What the data does not do: the dataset is explicitly marked as PLACEHOLDER — entries are generic IDs (uniswap-pool-1, etc.) with no token pairs, pool addresses, chain, fee tier, or up-to-date provenance. That makes the result unusable for a real \"top Uniswap pools right now\" answer. Also, if the user expects a live ranking or more than ten pools or ranking by a different metric (volume, fees), those needs are not met.\nWhy buying more would help: fetching real, live Uniswap pool data from the Uniswap subgraph (or a live Uniswap-pools service) would return actual pool identifiers, token pairs, addresses, current TVL and volume so a trustworthy \"top pools right now\" list can be produced. Without that live metadata, increasing the number of placeholder rows would not improve answer quality. Note: remaining budget (0.04 HBAR) is effectively too small to buy a live subgraph pull if such a purchase is required.\nAnswer:"
+    },
+    {
+      "type": "declined",
+      "reason": "What the data does: you bought 10 Uniswap pools with TVL figures, so this dataset could in principle identify the top-10 pools by TVL from that (placeholder) source. What the data does not do: the dataset is explicitly marked as PLACEHOLDER — entries are generic IDs (uniswap-pool-1, etc.) with no token pairs, pool addresses, chain, fee tier, or up-to-date provenance. That makes the result unusable for a real \"top Uniswap pools right now\" answer. Also, if the user expects a live ranking or more than ten pools or ranking by a different metric (volume, fees), those needs are not met.\nWhy buying more would help: fetching real, live Uniswap pool data from the Uniswap subgraph (or a live Uniswap-pools service) would return actual pool identifiers, token pairs, addresses, current TVL and volume so a trustworthy \"top pools right now\" list can be produced. Without that live metadata, increasing the number of placeholder rows would not improve answer quality. Note: remaining budget (0.04 HBAR) is effectively too small to buy a live subgraph pull if such a purchase is required.\nAnswer:",
+      "spent": "0.01 HBAR"
+    }
+  ]
+}
