@@ -1,0 +1,7 @@
+out/
+cache/
+broadcast/
+# `lib/` is no longer ignored: forge-std is a git submodule, so git stores a gitlink rather than
+# its contents. Ignoring the directory would make a fresh clone build without forge-std, which is
+# exactly the failure converting it to a submodule was meant to remove. Git cannot re-include a
+# path whose parent directory is excluded, so the rule has to go rather than be negated.
