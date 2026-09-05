@@ -1,0 +1,18 @@
+{
+  "network": "hedera:testnet",
+  "operatorAccount": "0.0.10315562",
+  "settlementAccount": "0.0.10319209",
+  "note": "settlementAccount receives x402 payments; created by scripts/hedera-setup.ts",
+  "createdAt": "2026-09-01T12:34:36.444Z",
+  "auditTopic": "0.0.10319381",
+  "hosted": {
+    "operatorAccount": "0.0.10345363",
+    "settlementAccount": "0.0.10345365",
+    "createdAt": "2026-09-03T07:36:45.321Z",
+    "retired": {
+      "operatorAccount": "0.0.10322893",
+      "settlementAccount": "0.0.10322894"
+    },
+    "note": "rotated after key exposure; the retired accounts must not be funded or used again"
+  }
+}

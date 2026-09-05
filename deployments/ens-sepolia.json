@@ -1,0 +1,18 @@
+{
+  "network": "sepolia",
+  "chainId": 11155111,
+  "parentName": "tollgatehq.eth",
+  "deployer": "0xF6A97d82885628b68DC2AdCFaBA936578AffeF8F",
+  "registry": "0x45BF1E3da54d9747Eb12D260fC76C3F5dc35d78e",
+  "resolver": "0xeb22a41C9b5f979385A045faaE72E730BF9d0B0C",
+  "registrar": "0x78155e1b4cd666244d5bdae73ad4a8c53693c661",
+  "rootRegistry": "0x8115186E8f2E0B0281e86ab91f0f48Ba90364354",
+  "deployedAt": "2026-09-01T17:00:28.821Z",
+  "services": [
+    "uniswap-pools",
+    "dex-pools",
+    "curve-pools"
+  ],
+  "deployBlock": 11613900,
+  "deployBlockNote": "Lower bound for event scans. Real Sepolia rejects getLogs from block 0, so discovery must start here; the registrar cannot have events before it existed."
+}
