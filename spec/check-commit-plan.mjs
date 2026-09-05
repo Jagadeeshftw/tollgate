@@ -81,6 +81,7 @@ const files = execSync(
   "find . -type f -not -path '*/node_modules/*' -not -path './.git/*' " +
     "-not -path './contracts/out/*' -not -path './contracts/cache/*' -not -path './contracts/lib/*' " +
     "-not -path './web/ui/.next/*' -not -path './web/ui/out/*' -not -path './scripts/tmp/*' " +
+    "-not -path '*/target/*' " +
     "-not -name 'next-env.d.ts' -not -name '*.tsbuildinfo' " +
     "-not -name '.env' -not -name '.substreams.env' -not -name '*.log' -not -name '.DS_Store'",
   { encoding: "utf8" },
