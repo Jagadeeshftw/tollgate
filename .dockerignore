@@ -1,0 +1,12 @@
+node_modules
+**/node_modules
+.git
+.env
+contracts/out
+contracts/cache
+contracts/lib
+**/*.log
+.DS_Store
+web/ui/.next
+web/ui/out
+scripts/tmp
