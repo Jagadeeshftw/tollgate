@@ -243,3 +243,63 @@ hides missing files, which is exactly how the forge-std problem stayed invisible
 Commits continue as the work does: the hosted deployment, the endpoint-update demo beat, the
 Track B contribution, the video and the README. The history should look like a project being
 built, because it is one.
+
+---
+
+## What actually happened — 5 September
+
+The sequence ran on **5 September, not the 4th**. The session held as instructed pending the date
+turning and was not resumed until the 5th, so all 28 commits carry 5 September author dates. They
+were **not backdated**. A graded history whose dates are fiction is worth less than one that is a
+day late and true, and the plan's own rule — that a claim nobody executed is not evidence — applies
+to its own dates as much as to its green checks.
+
+Four things changed during execution. None altered the commit contents or their order.
+
+**1 · `contracts/.gitignore` ignored `lib/`, which blocked the forge-std gitlink.** Step 2 converts
+forge-std from a plain clone to a submodule, but `git add` refused the gitlink because its parent
+directory was excluded, and git cannot re-include a path under an excluded directory — a negation
+like `!lib/forge-std` does not work. The rule was removed rather than negated. This is safe
+precisely because forge-std is now a submodule: git stores a 160000 gitlink, not the library's
+contents. The ignore had existed to keep the plain clone out of the tree, and converting it removed
+the reason for the rule.
+
+**2 · `.gitmodules` and the gitlink were absent from the checker's map.** Both now land at commit 8
+alongside the fork tests they exist for. The submodule enumerates with a trailing slash, so the
+pattern is `^contracts/lib/forge-std/?$`.
+
+**3 · Two bugs in the staging script, not in the plan.** The first enumeration used
+`git ls-files -o --directory`, which collapses an untracked tree into its top directory, so commits
+3, 4 and 5 matched nothing and commit 6's contents landed third. That attempt was discarded — `.git`
+was deleted and the sequence re-run from scratch, before any remote existed and before anything was
+pushed. Nothing partial was ever public.
+
+**4 · The retired-credential scan silently did nothing.** It compared the tree against a backup of
+the pre-rotation `.env` that had been cleared from the scratchpad between sessions, and a
+`try`/`catch` swallowed the read failure — so it reported "0 retired secrets" as though that were a
+pass. It was replaced with a pattern scan, which is strictly stronger because it does not need to
+know a credential's value. That scan then had a bug of its own: `\b[0-9a-fA-F]{64}\b` never matches
+a `0x`-prefixed key, because `x` is a word character, so it missed the anvil dev key sitting in two
+staged files. Fixed with lookarounds, then **self-tested against a canary** before its clean result
+was believed. Final scan: four credential-shaped strings, all benign and all previously documented —
+`namehash("eth")`, anvil's dev key in two files, an all-ones test placeholder, and a zero hash.
+
+The lesson is the one already written in `PROMPTS.md`, now with a third instance: a check that
+silently does nothing is indistinguishable from a check that passed. A scan reporting *clean* is
+worth nothing until it has been shown capable of reporting *dirty*.
+
+### Verified after the fact, not asserted
+
+| | |
+|---|---|
+| Commits | 28, single author `Jagadeesh B <jagadeesh26062002@gmail.com>` |
+| Trailers | zero — no `Co-Authored-By`, no "generated with", no AI attribution anywhere |
+| Working tree | clean, nothing uncommitted |
+| Fresh clone | `--recurse-submodules`, installs, and builds with no local state |
+| Suites from that clone | 8 packages typecheck · 76 unit tests · 16 contract fork tests · web export builds |
+| Gates | 14 passed, 3 blocked, 0 failed — including a real 402→200 settlement |
+
+Per-commit greenness was checked statically by `spec/check-commit-plan.mjs`, which proves no commit
+imports something that lands later, and dynamically by running the full suite at `HEAD` and again
+from a fresh clone. Each of the 28 trees was **not** individually checked out and built; that claim
+is not made.
