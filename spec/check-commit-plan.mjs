@@ -59,6 +59,10 @@ const PLAN = [
   [26, ["^deployments/"]],
   [27, ["^FEEDBACK/"]],
   [28, ["^docs/", "^spec/", "^submission/"]],
+  // Work that landed after the planned sequence. The plan describes how the repository was built to
+  // commit 28; everything since is ordinary development and is numbered past the end rather than
+  // retrofitted into it, so the original sequence stays readable as the record it is.
+  [29, ["^substreams/", "^packages/sdk/", "^scripts/gate-sdk\\.ts$"]],
 ];
 
 /**
