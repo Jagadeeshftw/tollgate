@@ -11,6 +11,8 @@ use pb::tollgate::uniswap_v3::v1 as out;
 use substreams::errors::Error;
 use substreams::scalar::BigInt;
 use substreams::Hex;
+use substreams_database_change::pb::sf::substreams::sink::database::v1::DatabaseChanges;
+use substreams_database_change::tables::Tables;
 use substreams_ethereum::pb::eth::v2 as eth;
 
 /// keccak256("Swap(address,address,int256,int256,uint160,uint128,int24)")
@@ -88,4 +90,32 @@ fn map_swaps(block: eth::Block) -> Result<out::Swaps, Error> {
     }
 
     Ok(out::Swaps { swaps })
+}
+
+/// Emit the same swaps as row-level changes for a SQL sink.
+///
+/// Composite primary key `(tx_hash, log_index)` given as an array of tuples in the same order as
+/// `schema.sql` — the skill is explicit that string-concatenating a multi-column key is wrong, and
+/// the array must be homogeneous, which is why `log_index` is stringified into a binding first.
+#[substreams::handlers::map]
+fn db_out(swaps: out::Swaps) -> Result<DatabaseChanges, Error> {
+    let mut tables = Tables::new();
+
+    for swap in swaps.swaps {
+        let log_index = swap.log_index.to_string();
+        tables
+            .create_row("swaps", [("tx_hash", swap.tx_hash.as_str()), ("log_index", log_index.as_str())])
+            .set("pool", swap.pool)
+            .set("sender", swap.sender)
+            .set("recipient", swap.recipient)
+            .set("amount0", swap.amount0)
+            .set("amount1", swap.amount1)
+            .set("sqrt_price_x96", swap.sqrt_price_x96)
+            .set("liquidity", swap.liquidity)
+            .set("tick", swap.tick.to_string())
+            .set("block_number", swap.block_number.to_string())
+            .set("block_timestamp", swap.block_timestamp.to_string());
+    }
+
+    Ok(tables.to_database_changes())
 }

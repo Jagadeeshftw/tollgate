@@ -10,6 +10,7 @@ prost = "0.13"
 prost-types = "0.13"
 hex = "0.4"
 hex-literal = "0.4"
+substreams-database-change = "4"
 
 [lib]
 crate-type = ["cdylib"]

@@ -7,11 +7,15 @@ package:
 
 network: mainnet
 
+imports:
+  database: https://github.com/streamingfast/substreams-sink-database-changes/releases/download/v4.0.0/substreams-sink-database-changes-v4.0.0.spkg
+
 protobuf:
   files:
     - swaps.proto
   importPaths:
     - ./proto
+  excludePaths: [sf/substreams, google]
 
 binaries:
   default:
@@ -26,3 +30,18 @@ modules:
       - source: sf.ethereum.type.v2.Block
     output:
       type: proto:tollgate.uniswap_v3.v1.Swaps
+
+  - name: db_out
+    kind: map
+    initialBlock: 21000000
+    inputs:
+      - map: map_swaps
+    output:
+      type: proto:sf.substreams.sink.database.v1.DatabaseChanges
+
+sink:
+  module: db_out
+  type: sf.substreams.sink.sql.service.v1.Service
+  config:
+    schema: ./schema.sql
+    engine: postgres
