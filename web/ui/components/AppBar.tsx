@@ -29,7 +29,8 @@ export function AppBar({
         Tollgate
       </Link>
       <nav className="flex items-center gap-1">{nav}</nav>
-      <div className="flex items-center gap-4 font-mono text-[11.5px] text-dim">{status}</div>
+      {/* Status is secondary: below `sm` it yields its width to the navigation rather than wrapping into it. */}
+      <div className="hidden items-center gap-4 font-mono text-[11.5px] text-dim sm:flex">{status}</div>
     </header>
   );
 }
@@ -47,7 +48,7 @@ export function NavTab({
     <Link
       href={href}
       className={cn(
-        "rounded-md px-3 py-1.5 text-[13px] transition-colors",
+        "rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors",
         active ? "bg-surface text-ink" : "text-muted hover:text-ink",
       )}
     >
