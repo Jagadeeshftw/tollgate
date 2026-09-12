@@ -1,0 +1,12 @@
+{
+  "name": "@tollgate/discovery",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Model-free discovery, pricing and budget arithmetic for ENS-listed x402 services",
+  "type": "module",
+  "main": "src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": { "viem": "^2.56.1" },
+  "devDependencies": { "@types/node": "^24.10.0", "typescript": "^5.9.3" }
+}

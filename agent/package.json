@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
+    "@tollgate/discovery": "workspace:*",
     "@tollgate/x402-client": "workspace:*",
     "openai": "^7.8.0",
     "viem": "^2.56.1",

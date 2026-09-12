@@ -1,4 +1,4 @@
-import { Budget, EnsDirectory, priceOf, toBaseUnits, type Candidate } from "@tollgate/agent";
+import { Budget, EnsDirectory, priceOf, toBaseUnits, type Candidate } from "@tollgate/discovery";
 
 import { HBAR, SEPOLIA_DEPLOYMENT, TINYBARS_PER_HBAR } from "./defaults.js";
 import { CatalogueUnavailableError, ServiceNotFoundError, UnpriceableServiceError } from "./errors.js";
