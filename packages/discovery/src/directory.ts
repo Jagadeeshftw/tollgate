@@ -149,9 +149,32 @@ export class EnsDirectory implements Directory {
 
     // Revocation is a fact about the chain and outranks any hint.
     const revokedLabels = new Set(revoked.map((l) => l.args.label).filter(Boolean) as string[]);
-    const hinted = (this.config.knownLabels ?? []).filter(
+    let hinted = (this.config.knownLabels ?? []).filter(
       (l) => !discovered.includes(l) && !revokedLabels.has(l),
     );
+    // `knownLabels` carries no expiry of its own — unlike `discovered`, which is checked against the
+    // event's own `expiry` above, and unlike `enumerateOpen()`, which checks liveness against the
+    // registry. A hinted label whose listing has since expired would otherwise be offered forever:
+    // its resolver records outlive the registration and `read()` below has no way to tell. Checked
+    // here, the same way `enumerateOpen()` does, when a registry address happens to be configured —
+    // which today it always is, since our deployment always sets one. Without one, this silently
+    // reduces to the old, unchecked behaviour; see FEEDBACK/ENS.md for why that has not mattered yet
+    // (the curated listings do not expire until September 2027) and will start to.
+    if (hinted.length && this.config.registryAddress) {
+      const owners = await this.client.multicall({
+        contracts: hinted.map((label) => ({
+          address: this.config.registryAddress!,
+          abi: REGISTRY_ABI,
+          functionName: "ownerOf" as const,
+          args: [labelId(label)] as const,
+        })),
+        allowFailure: true,
+      });
+      hinted = hinted.filter((_, i) => {
+        const r = owners[i];
+        return r?.status === "success" && r.result !== "0x0000000000000000000000000000000000000000";
+      });
+    }
 
     const enumerated = (await this.enumerateOpen()).filter(
       (l) => !discovered.includes(l) && !hinted.includes(l) && !revokedLabels.has(l),
