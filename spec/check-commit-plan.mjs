@@ -84,12 +84,21 @@ const PLAN = [
  */
 const TOUCHED_LATER = {
   "scripts/gates.ts": 26,
-  // Reduced to re-export shims when discovery moved to @tollgate/discovery (post-sequence, 29). Their
-  // original contents land at 17 and 19 as planned; the shims' imports are validated at 29.
-  "agent/src/directory.ts": 29,
-  "agent/src/policy.ts": 29,
-  "agent/src/budget.ts": 29,
+  // agent/src/{directory,policy,budget}.ts were reduced to re-export shims when discovery moved to
+  // @tollgate/discovery, then deleted once the agent was refactored to consume @tollgatehq/sdk
+  // directly (still post-sequence, 29) — no longer present, entries kept only as a record of why.
   "agent/src/types.ts": 29,
+  // The agent refactor itself: these files' original contents land at 17-19 as planned; consuming
+  // @tollgate/discovery and @tollgatehq/sdk directly is post-sequence work, validated at 29.
+  "agent/src/agent.ts": 29,
+  "agent/src/index.ts": 29,
+  "agent/src/trace.ts": 29,
+  "agent/src/reasoner.ts": 29,
+  "agent/src/demo.ts": 29,
+  "agent/test/support.ts": 29,
+  "agent/test/agent.test.ts": 29,
+  "agent/test/policy.test.ts": 29,
+  "agent/test/provider.test.ts": 29,
 };
 
 const files = execSync(
