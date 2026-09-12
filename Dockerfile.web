@@ -17,12 +17,17 @@ COPY packages/ens-config/package.json  packages/ens-config/
 COPY packages/x402-client/package.json packages/x402-client/
 COPY packages/devnet/package.json      packages/devnet/
 COPY packages/graph/package.json       packages/graph/
+COPY packages/discovery/package.json   packages/discovery/
+COPY packages/sdk/package.json         packages/sdk/
 COPY service/package.json              service/
 COPY agent/package.json                agent/
 COPY web/package.json                  web/
 COPY web/ui/package.json               web/ui/
 
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts: @tollgatehq/sdk's own `prepare` script builds it with tsup, and at this point
+# only manifests are copied — its source doesn't exist yet, so the build has nothing to compile.
+# Deferred to an explicit build below, once the real source is in the image.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY packages/    packages/
 COPY service/     service/
@@ -30,6 +35,12 @@ COPY agent/       agent/
 COPY web/         web/
 COPY deployments/ deployments/
 COPY docs/        docs/
+# The Verify docs page reads TollgateRecordsLib.sol's record-key constants at build time — the
+# contracts source, not compiled artifacts (.dockerignore keeps out/, cache/ and lib/, so this
+# stays small).
+COPY contracts/   contracts/
+
+RUN pnpm --filter @tollgatehq/sdk build
 
 # `web/ui/block` holds the Aceternity blocks as the registry ships them — vendor reference, carrying
 # their own demo copy and written against React 18 ref types. `web/ui/tsconfig.json` excludes the

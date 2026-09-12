@@ -15,11 +15,16 @@ COPY packages/ens-config/package.json  packages/ens-config/
 COPY packages/x402-client/package.json packages/x402-client/
 COPY packages/devnet/package.json      packages/devnet/
 COPY packages/graph/package.json       packages/graph/
+COPY packages/discovery/package.json   packages/discovery/
+COPY packages/sdk/package.json         packages/sdk/
 COPY service/package.json              service/
 COPY agent/package.json                agent/
 COPY web/package.json                  web/
 
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts: @tollgatehq/sdk's own `prepare` script builds it with tsup, and at this point
+# only manifests are copied — its source doesn't exist yet, so the build has nothing to compile.
+# Deferred to an explicit build below, once the real source is in the image.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY packages/ packages/
 COPY service/  service/
@@ -27,6 +32,8 @@ COPY web/      web/
 COPY agent/    agent/
 COPY deployments/ deployments/
 COPY docs/     docs/
+
+RUN pnpm --filter @tollgatehq/sdk build
 
 ENV NODE_ENV=production
 # Railway injects PORT; the service reads it and falls back to 8402 locally.
