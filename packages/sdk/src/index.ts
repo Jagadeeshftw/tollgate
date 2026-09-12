@@ -1,5 +1,5 @@
 export { Tollgate, hbarToTinybars, tinybarsToHbar } from "./tollgate.js";
-export type { BudgetView, DiscoveryReport, HederaPayer, TollgateOptions } from "./tollgate.js";
+export type { BudgetLike, BudgetView, DiscoveryReport, HederaPayer, TollgateOptions } from "./tollgate.js";
 export { ServiceHandle } from "./service.js";
 export type { Directory } from "@tollgate/discovery";
 export type { PaidResult, Quote } from "./service.js";

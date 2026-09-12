@@ -12,17 +12,35 @@ export interface HederaPayer {
   readonly network?: string;
 }
 
+/**
+ * The shape a budget must have — deliberately structural, not the `Budget` class itself.
+ *
+ * This package bundles its own copy of `@tollgate/discovery` (see tsup.config.ts), so a `Budget`
+ * built against a separately loaded copy of that package — exactly what happens inside this
+ * repository's own agent — is a different class reference despite being identical in shape.
+ * Accepting anything budget-shaped, rather than checking `instanceof Budget`, is what makes the
+ * seam actually usable across that boundary.
+ */
+export interface BudgetLike {
+  readonly limitBaseUnits: bigint;
+  readonly spent: bigint;
+  readonly remaining: bigint;
+  readonly asset: string;
+  canAfford(costBaseUnits: bigint): boolean;
+  reserve(costBaseUnits: bigint): void;
+}
+
 export interface TollgateOptions {
   /** Hedera account the SDK pays from. Omit to run discovery and quoting without a wallet. */
   readonly hedera?: HederaPayer;
   /**
    * Total spend allowed across the lifetime of this instance, in HBAR.
    *
-   * Pass an existing {@link Budget} instance instead of a string to share one budget across more
-   * than one `Tollgate`, or to hold onto it after construction — the instance is used as given,
-   * not copied.
+   * Pass an existing budget-shaped object instead of a string to share one budget across more than
+   * one `Tollgate`, or to hold onto it after construction — the instance is used as given, not
+   * copied.
    */
-  readonly budget?: string | Budget;
+  readonly budget?: string | BudgetLike;
   /**
    * Override discovery — read the catalogue from somewhere other than this deployment's own ENS
    * records. Chiefly for tests: a caller can assert against a fixed, scripted catalogue without a
@@ -108,7 +126,7 @@ export interface BudgetView {
  */
 export class Tollgate {
   private readonly directory: Directory;
-  private readonly budgetState: Budget;
+  private readonly budgetState: BudgetLike;
   private discovery: DiscoveryReport = { total: 0, fromLogs: 0, recovered: [], selfListed: [] };
   private cached?: ServiceHandle[];
 
@@ -131,10 +149,15 @@ export class Tollgate {
           : {}),
         ...(options.corroborateWith ? { corroborateWith: options.corroborateWith } : {}),
       });
+    // Duck-typed, not `instanceof Budget`: this package bundles its own copy of `@tollgate/discovery`
+    // (see tsup.config.ts), so a `Budget` constructed against the *unbundled* package — exactly what
+    // our own agent does — is a different class reference despite being identical in shape.
+    // `instanceof` would silently fail across that boundary and this would try to parse the object as
+    // a decimal string instead. A caller passes either a decimal string or something budget-shaped.
     this.budgetState =
-      options.budget instanceof Budget
-        ? options.budget
-        : new Budget(options.budget ? toBaseUnits(options.budget, HBAR) : 0n, HBAR);
+      typeof options.budget === "string" || options.budget === undefined
+        ? new Budget(options.budget ? toBaseUnits(options.budget, HBAR) : 0n, HBAR)
+        : options.budget;
   }
 
   /** What the SDK is allowed to spend, and what it has spent. */

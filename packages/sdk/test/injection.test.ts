@@ -60,6 +60,43 @@ describe("injected budget", () => {
     expect(budget.spent).toBe(1_000_000n); // the instance passed in, not a copy
     expect(tollgate.budget.spent).toBe(1_000_000n);
   });
+
+  /**
+   * This package bundles its own copy of `@tollgate/discovery` (see tsup.config.ts) — so a `Budget`
+   * built against a *separately loaded* copy of that package, exactly what our own agent does, is a
+   * different class reference despite identical shape. `instanceof Budget` would silently fail across
+   * that boundary and try to parse the object as a decimal string instead — this regressed once
+   * already, caught only once the agent actually resolved this package through its built `dist`
+   * rather than its TypeScript source. A budget-shaped object, not a nominal type, must be accepted.
+   */
+  it("accepts a budget-shaped object that is not an instance of this package's own Budget class", async () => {
+    const reserved: bigint[] = [];
+    const foreignBudget = {
+      limitBaseUnits: 2_000_000n,
+      spent: 0n,
+      get remaining() {
+        return this.limitBaseUnits - this.spent;
+      },
+      asset: "0.0.0",
+      canAfford(amount: bigint) {
+        return amount <= this.remaining;
+      },
+      reserve(amount: bigint) {
+        reserved.push(amount);
+        this.spent += amount;
+      },
+    };
+    const tollgate = new Tollgate({
+      directory: { list: async () => [candidate] },
+      budget: foreignBudget,
+      hedera: { accountId: "0.0.1", privateKey: "0x00" },
+      purchase: fakePurchase("1000000").fn,
+    });
+    const svc = await tollgate.get("uniswap-pools");
+    await svc.fetch({ limit: 1 });
+    expect(reserved).toEqual([1_000_000n]); // the foreign object's own reserve() ran, not a parse failure
+    expect(foreignBudget.spent).toBe(1_000_000n);
+  });
 });
 
 describe("injected purchase", () => {

@@ -4,8 +4,13 @@
   "description": "Discover data services by ENS name and pay for them per call over x402 on Hedera",
   "license": "MIT",
   "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
   "files": [
     "dist",
@@ -23,6 +28,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "build": "tsup",
+    "prepare": "pnpm run build",
     "prepublishOnly": "pnpm run build && pnpm run test"
   },
   "dependencies": {
@@ -42,15 +48,7 @@
     "node": ">=22"
   },
   "publishConfig": {
-    "access": "public",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "import": "./dist/index.js"
-      }
-    }
+    "access": "public"
   },
   "repository": {
     "type": "git",

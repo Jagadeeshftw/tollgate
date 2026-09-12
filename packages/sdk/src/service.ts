@@ -1,4 +1,4 @@
-import { Budget, priceOf, toBaseUnits, type Candidate } from "@tollgate/discovery";
+import { priceOf, toBaseUnits, type Candidate } from "@tollgate/discovery";
 import {
   PriceRejectedError,
   SettlementFailedError as ClientSettlementFailedError,
@@ -6,7 +6,6 @@ import {
   quote as readChallenge,
 } from "@tollgate/x402-client";
 
-import { HBAR } from "./defaults.js";
 import {
   BudgetExceededError,
   NoPayerError,
@@ -15,7 +14,7 @@ import {
   SettlementFailedError,
   UnpriceableServiceError,
 } from "./errors.js";
-import type { HederaPayer } from "./tollgate.js";
+import type { BudgetLike, HederaPayer } from "./tollgate.js";
 
 export interface Quote {
   readonly label: string;
@@ -60,7 +59,7 @@ export interface PaidResult<T = unknown> {
 export class ServiceHandle {
   constructor(
     readonly candidate: Candidate,
-    private readonly budget: Budget,
+    private readonly budget: BudgetLike,
     private readonly payer?: HederaPayer,
     /**
      * How a purchase is executed. Defaults to a real x402 payment.
