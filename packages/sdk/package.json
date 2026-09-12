@@ -1,6 +1,6 @@
 {
   "name": "@tollgatehq/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Discover data services by ENS name and pay for them per call over x402 on Hedera",
   "license": "MIT",
   "type": "module",
