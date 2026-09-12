@@ -41,13 +41,17 @@ trusting anything this repo says.
 Verify a listing resolves through the public resolver, with nothing from this repo involved:
 
 ```bash
-cast call 0x4A1817d13E9cF196f471725176355C1234b63C70 \
-  "resolve(bytes,bytes)(bytes,address)" \
-  $(cast --to-hex "$(printf '\x0duniswap-pools\x0atollgatehq\x03eth\x00')") \
-  $(cast calldata "text(bytes32,string)" \
-      $(cast namehash uniswap-pools.tollgatehq.eth) "x402:price") \
-  --rpc-url https://ethereum-sepolia-rpc.publicnode.com
+NAME=uniswap-pools.tollgatehq.eth
+DNS=$(python3 -c "import sys; n=sys.argv[1]; print('0x' + b''.join(bytes([len(l)]) + l.encode() for l in n.split('.')).hex() + '00')" "$NAME")
+RESULT=$(cast call 0x4A1817d13E9cF196f471725176355C1234b63C70 \
+  "resolve(bytes,bytes)(bytes,address)" "$DNS" \
+  "$(cast calldata "text(bytes32,string)" "$(cast namehash "$NAME")" "x402:price")" \
+  --rpc-url https://ethereum-sepolia-rpc.publicnode.com | head -1)
+cast --abi-decode "text()(string)" "$RESULT"     # → "0.001"
 ```
+
+The version previously shown here did not work: `cast --to-hex` takes a number, not raw bytes, so
+it failed before reaching the chain. This one was run against live Sepolia before it was committed.
 
 ### Discovery runs on resolver recovery, not on the event log
 
