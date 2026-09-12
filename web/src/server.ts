@@ -15,6 +15,7 @@
  *
  * **`replay`**. Archived runs only. No payments, no model.
  */
+import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { resolve } from "node:path";
@@ -31,6 +32,7 @@ import {
 import { freePort, listenOrFail, startDevnet, type Devnet } from "@tollgate/devnet";
 import { health } from "./health.js";
 import { DEFAULT_LIMITS, explain, Limiter } from "./limits.js";
+import { getRun, listRuns, persistenceConfigured, saveRun, type RunStatus } from "./runs.js";
 import { GraphDataSource } from "@tollgate/graph";
 import { createApp, HcsAuditLog, OnChainListings } from "@tollgate/service";
 import express from "express";
@@ -287,6 +289,66 @@ app.get("/api/replay/:name", async (req, res) => {
   res.end();
 });
 
+/** BigInt has no native JSON representation; every base-unit field is rendered as a decimal string. */
+function runToJson(r: {
+  id: string;
+  question: string;
+  budgetBaseUnits: bigint;
+  spentBaseUnits: bigint;
+  transactionId: string | null;
+  status: RunStatus;
+  answer: string | null;
+  createdAt: Date;
+}) {
+  return {
+    id: r.id,
+    question: r.question,
+    budgetBaseUnits: r.budgetBaseUnits.toString(),
+    spentBaseUnits: r.spentBaseUnits.toString(),
+    transactionId: r.transactionId,
+    status: r.status,
+    answer: r.answer,
+    createdAt: r.createdAt.toISOString(),
+  };
+}
+
+/**
+ * Best-effort: a visitor's run is not held hostage to the database being reachable. A failure here
+ * is logged loudly — never silently swallowed — but never re-thrown into the response stream that
+ * already told the visitor their answer.
+ */
+async function persistRun(input: Parameters<typeof saveRun>[0]): Promise<void> {
+  if (!persistenceConfigured()) return;
+  try {
+    await saveRun(input);
+  } catch (err) {
+    // Never the connection string, never the driver's raw error — just what we already know.
+    console.error(`[runs] failed to persist run ${input.id}: ${(err as Error)?.message ?? err}`);
+  }
+}
+
+app.get("/api/runs", async (req, res) => {
+  if (!persistenceConfigured()) return res.json({ configured: false, runs: [] });
+  try {
+    const limit = Math.min(Number(req.query.limit ?? 20) || 20, 100);
+    const runs = await listRuns(limit);
+    res.json({ configured: true, runs: runs.map(runToJson) });
+  } catch (err) {
+    res.status(503).json({ configured: true, error: (err as Error)?.message ?? "unavailable" });
+  }
+});
+
+app.get("/api/runs/:id", async (req, res) => {
+  if (!persistenceConfigured()) return res.status(404).json({ error: "persistence not configured" });
+  try {
+    const run = await getRun(String(req.params.id));
+    if (!run) return res.status(404).json({ error: "no such run" });
+    res.json(runToJson(run));
+  } catch (err) {
+    res.status(503).json({ error: (err as Error)?.message ?? "unavailable" });
+  }
+});
+
 app.get("/api/ask", async (req, res) => {
   res.writeHead(200, {
     "content-type": "text/event-stream",
@@ -330,21 +392,42 @@ app.get("/api/ask", async (req, res) => {
     return res.end();
   }
 
+  const question = String(req.query.q ?? "what are the top uniswap pools right now?");
+  const runId = randomUUID();
+  const runBudget = new Budget(budget);
   try {
-    await ask(String(req.query.q ?? "what are the top uniswap pools right now?"), {
+    const result = await ask(question, {
       directory: directory(),
       reasoner: new ModelReasoner(),
       payer: { accountId: operatorId, privateKey: operatorKey },
-      budget: new Budget(budget),
+      budget: runBudget,
       trace: send,
     });
+    await persistRun({
+      id: runId,
+      question,
+      budgetBaseUnits: budget,
+      spentBaseUnits: result.spentBaseUnits,
+      transactionId: result.purchases.map((p) => p.transactionId).join(", ") || null,
+      status: result.answered ? "answered" : "declined",
+      answer: result.text,
+    });
   } catch (err: unknown) {
-    send({
-      type: "fatal",
-      message:
-        err instanceof MissingModelCredentialsError
-          ? err.message
-          : ((err as Error)?.message ?? "unknown error"),
+    const message =
+      err instanceof MissingModelCredentialsError
+        ? err.message
+        : ((err as Error)?.message ?? "unknown error");
+    send({ type: "fatal", message });
+    await persistRun({
+      id: runId,
+      question,
+      budgetBaseUnits: budget,
+      // The budget instance is shared with ask() and reflects whatever it reserved before
+      // throwing, even though the loop never returned a result to read spentBaseUnits from.
+      spentBaseUnits: runBudget.spent,
+      transactionId: null,
+      status: "error",
+      answer: message,
     });
   }
   res.end();

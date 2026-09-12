@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { RecentRuns } from "./RecentRuns";
 
 const STEPS = [
   ["Reads the marketplace off the chain", "Replays the registrar's events, then reads each listing's current terms from the resolver. No endpoint list is handed to it."],
@@ -61,6 +62,8 @@ export function IdleState({
           </div>
         </>
       ) : null}
+
+      <RecentRuns />
 
       <div className="mt-9 border-t border-rule pt-5">
         <div className="text-[10.5px] font-semibold tracking-[0.11em] text-dim uppercase">
