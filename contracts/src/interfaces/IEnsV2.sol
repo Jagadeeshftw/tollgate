@@ -40,8 +40,14 @@ interface IPermissionedRegistry {
     /// @notice Current owner of a name, or the zero address if unregistered or expired.
     function ownerOf(uint256 tokenId) external view returns (address);
 
+    /// @notice Absolute expiry of a name.
+    function getExpiry(uint256 tokenId) external view returns (uint64);
+
     /// @notice Grant EAC roles on the root resource of this registry.
     function grantRootRoles(uint256 roleBitmap, address account) external returns (bool);
+
+    /// @notice Revoke EAC roles on the root resource. Returns false if nothing changed.
+    function revokeRootRoles(uint256 roleBitmap, address account) external returns (bool);
 
     /// @notice Whether `account` holds all of `roleBitmap` on `resource`.
     function hasRoles(uint256 resource, uint256 roleBitmap, address account)
@@ -79,6 +85,9 @@ interface IPermissionedResolver {
 
     /// @notice Grant EAC roles on the root resource of this resolver.
     function grantRootRoles(uint256 roleBitmap, address account) external returns (bool);
+
+    /// @notice Revoke EAC roles on the root resource. Returns false if nothing changed.
+    function revokeRootRoles(uint256 roleBitmap, address account) external returns (bool);
 
     /// @notice Whether `account` holds all of `roleBitmap` on `resource`.
     function hasRoles(uint256 resource, uint256 roleBitmap, address account)
