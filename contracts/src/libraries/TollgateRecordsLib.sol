@@ -91,8 +91,23 @@ library TollgateRecordsLib {
     ///      The resolver, by contrast, keys records by *namehash*, which does include the parent.
     ///      Passing a namehash to the registry (or a labelhash to the resolver) silently addresses
     ///      a different name rather than reverting.
+    ///
+    ///      **Not the token id.** This is the raw labelhash, which the registry accepts wherever a
+    ///      function takes "any id" — `unregister`, `getExpiry` — because it masks the low bits
+    ///      itself. `ownerOf` does not mask: it returns the zero address for a raw labelhash even
+    ///      when the name is live and owned. Use {tokenId} for ownership. Found on 12 September
+    ///      when an ownership check against the live registry returned zero for a name that had
+    ///      just been minted; an existing test asserting `ownerOf(labelId(x)) == 0` after revoke
+    ///      had been passing vacuously, because that expression is zero for every name.
     function labelId(string memory label) internal pure returns (uint256) {
         return uint256(keccak256(bytes(label)));
+    }
+
+    /// @notice The registry's ERC1155 token id for `label`: its labelhash with the low 32 bits
+    ///         cleared. ENSv2 keeps a token version in those bits; a freshly minted name has
+    ///         version zero. This is the id `ownerOf` resolves.
+    function tokenId(string memory label) internal pure returns (uint256) {
+        return uint256(keccak256(bytes(label))) & ~uint256(0xffffffff);
     }
 
     /// @notice Namehash of `label` under `parentNode`, per ENS.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 
 import { ask } from "../src/agent.js";
-import { Budget } from "../src/budget.js";
-import { priceOf } from "../src/policy.js";
+import { Budget } from "@tollgate/discovery";
+import { priceOf } from "@tollgate/discovery";
 import { ACTOR, collectTrace, type TraceEvent } from "../src/trace.js";
 import { ALL_DEX, fakePurchase, ScriptedReasoner, StaticDirectory, UNISWAP } from "./support.js";
 
@@ -114,6 +114,45 @@ describe("the agent declines", () => {
 
     expect(result.answered).toBe(false);
     expect(result.text).toContain("wrong chain");
+  });
+
+  /**
+   * x402 settles before the resource is returned, so a service can take the money and still fail
+   * to serve. Before the agent routed purchases through the SDK, this path did not reserve the
+   * budget at all — money moved on chain that the agent's own ledger never recorded. Routing
+   * through `@tollgatehq/sdk` fixes that: the budget is charged, and the failure is surfaced
+   * rather than silently swallowed.
+   */
+  it("charges the budget when a service settles the payment and then fails to serve", async () => {
+    const { sink, events } = collectTrace();
+    const calls: { url: string }[] = [];
+    const failAfterPayment = (async (url: string) => {
+      calls.push({ url });
+      return {
+        challenge: { asset: "0.0.0", amount: "300000", payTo: "0.0.999", network: "hedera:testnet" },
+        status: 500,
+        body: "internal error",
+        transactionId: "0.0.1@9.9", // the server reports a transaction — money moved
+        hashscanUrl: "https://hashscan.io/testnet/transaction/0.0.1@9.9",
+      };
+    }) as never;
+    const budget = new Budget(100_000_000n);
+
+    const result = await ask("what are the top uniswap pools?", {
+      directory: new StaticDirectory([UNISWAP, ALL_DEX]),
+      reasoner: new ScriptedReasoner([], []),
+      payer,
+      budget,
+      trace: sink,
+      unitChoices: [3, 10],
+      purchase: failAfterPayment,
+    });
+
+    expect(calls).toHaveLength(1); // the purchase was actually attempted
+    expect(result.answered).toBe(false);
+    expect(budget.spent).toBe(300_000n); // charged — the transaction id says the money moved
+    expect(find(events, "payment")).toHaveLength(0); // no payment event: it was never confirmed served
+    expect(find(events, "error")[0]?.message).toContain("500");
   });
 });
 

@@ -178,6 +178,24 @@ resolver reads before it is shown to a user. A registry-level enumeration view, 
 feasible, would remove the dependence entirely: `eth_call` was reliable on the same endpoints that
 mis-served `eth_getLogs`.
 
+**Update, 13 September — the path is now dead, not merely degraded.** The registrar's deploy block
+is now ~77,000 blocks behind head. `ethereum-sepolia-rpc.publicnode.com` no longer returns a
+partial result for a range that size — it rejects the query outright (`exceed maximum block range:
+50000`). A window sized to fit under that limit does not recover the log either: a 45,000-block
+chunk from the same deploy block returns zero events, not a partial set. Chunking was already ruled
+out above as a fix for the under-reporting; this rules it out for the outright rejection too, since
+the failure is not the range but the same incomplete indexing described above, now compounded by a
+hard cap that a chunked scan cannot both stay under and still cover the full history from deploy.
+
+This changes the claim from "public endpoints may under-report the log silently" to **"event-log
+enumeration does not work at all against a public Sepolia endpoint once a registrar has enough
+history behind it, by two independent failure modes at once."** Resolver re-verification — reading
+every candidate back through `eth_call` rather than trusting what the log returned — is not an
+optimization over log-based discovery for a name-based marketplace on public infrastructure; it is
+the only path that still works. Our own discovery only functions today because it treats the log as
+a hint and never as a source of truth (see "What we did" above, and `knownLabels` /
+`enumerateOpen()` in `packages/discovery/src/directory.ts`).
+
 ## Overall
 
 The feature set is genuinely well matched to what we are building — we chose ENSv2 because

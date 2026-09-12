@@ -1,4 +1,5 @@
-import { Budget, EnsDirectory, priceOf, toBaseUnits, type Candidate } from "@tollgate/agent";
+import { Budget, EnsDirectory, priceOf, toBaseUnits, type Candidate, type Directory } from "@tollgate/discovery";
+import { payAndFetch } from "@tollgate/x402-client";
 
 import { HBAR, SEPOLIA_DEPLOYMENT, TINYBARS_PER_HBAR } from "./defaults.js";
 import { CatalogueUnavailableError, ServiceNotFoundError, UnpriceableServiceError } from "./errors.js";
@@ -11,11 +12,49 @@ export interface HederaPayer {
   readonly network?: string;
 }
 
+/**
+ * The shape a budget must have — deliberately structural, not the `Budget` class itself.
+ *
+ * This package bundles its own copy of `@tollgate/discovery` (see tsup.config.ts), so a `Budget`
+ * built against a separately loaded copy of that package — exactly what happens inside this
+ * repository's own agent — is a different class reference despite being identical in shape.
+ * Accepting anything budget-shaped, rather than checking `instanceof Budget`, is what makes the
+ * seam actually usable across that boundary.
+ */
+export interface BudgetLike {
+  readonly limitBaseUnits: bigint;
+  readonly spent: bigint;
+  readonly remaining: bigint;
+  readonly asset: string;
+  canAfford(costBaseUnits: bigint): boolean;
+  reserve(costBaseUnits: bigint): void;
+}
+
 export interface TollgateOptions {
   /** Hedera account the SDK pays from. Omit to run discovery and quoting without a wallet. */
   readonly hedera?: HederaPayer;
-  /** Total spend allowed across the lifetime of this instance, in HBAR. */
-  readonly budget?: string;
+  /**
+   * Total spend allowed across the lifetime of this instance, in HBAR.
+   *
+   * Pass an existing budget-shaped object instead of a string to share one budget across more than
+   * one `Tollgate`, or to hold onto it after construction — the instance is used as given, not
+   * copied.
+   */
+  readonly budget?: string | BudgetLike;
+  /**
+   * Override discovery — read the catalogue from somewhere other than this deployment's own ENS
+   * records. Chiefly for tests: a caller can assert against a fixed, scripted catalogue without a
+   * network call. The default reads the live chain.
+   */
+  readonly directory?: Directory;
+  /**
+   * Override how a purchase is executed. Defaults to a real x402 payment.
+   *
+   * Injectable so a caller can assert on budget and ceiling enforcement without spending real
+   * money on every test. The default is the real thing; there is no "simulate" mode that could be
+   * left on by accident.
+   */
+  readonly purchase?: typeof payAndFetch;
   readonly parent?: string;
   readonly registrar?: string;
   readonly resolver?: string;
@@ -30,6 +69,13 @@ export interface TollgateOptions {
    * rely on the event log alone, accepting that public endpoints under-report it without erroring.
    */
   readonly knownLabels?: readonly string[];
+  /**
+   * An open registrar to enumerate — where anyone may list for themselves. Listings found this way
+   * are self-published and unvetted; `lastDiscovery.selfListed` names them so a caller can weigh
+   * them differently. Omit to read the curated catalogue only.
+   */
+  readonly openRegistrar?: string;
+  readonly registry?: string;
 }
 
 /** How the last `list()` was assembled — reported, because a shrinking catalogue must not be silent. */
@@ -46,6 +92,8 @@ export interface DiscoveryReport {
   readonly recovered: readonly string[];
   /** Set when every endpoint failed the log query outright. */
   readonly scanFailed?: string;
+  /** Listings found in the open registrar: self-published, not vetted by anyone. */
+  readonly selfListed: readonly string[];
 }
 
 /** A read-only view of what has been spent. */
@@ -77,26 +125,39 @@ export interface BudgetView {
  * ```
  */
 export class Tollgate {
-  private readonly directory: EnsDirectory;
-  private readonly budgetState: Budget;
-  private discovery: DiscoveryReport = { total: 0, fromLogs: 0, recovered: [] };
+  private readonly directory: Directory;
+  private readonly budgetState: BudgetLike;
+  private discovery: DiscoveryReport = { total: 0, fromLogs: 0, recovered: [], selfListed: [] };
   private cached?: ServiceHandle[];
 
   constructor(private readonly options: TollgateOptions = {}) {
     const parent = options.parent ?? SEPOLIA_DEPLOYMENT.parent;
-    this.directory = new EnsDirectory({
-      rpcUrl: options.sepoliaRpc ?? "https://ethereum-sepolia-rpc.publicnode.com",
-      registrarAddress: (options.registrar ?? SEPOLIA_DEPLOYMENT.registrar) as `0x${string}`,
-      resolverAddress: (options.resolver ?? SEPOLIA_DEPLOYMENT.resolver) as `0x${string}`,
-      parentName: parent,
-      fromBlock: BigInt(options.deployBlock ?? SEPOLIA_DEPLOYMENT.deployBlock),
-      knownLabels: options.knownLabels ?? SEPOLIA_DEPLOYMENT.services,
-      ...(options.corroborateWith ? { corroborateWith: options.corroborateWith } : {}),
-    });
-    this.budgetState = new Budget(
-      options.budget ? toBaseUnits(options.budget, HBAR) : 0n,
-      HBAR,
-    );
+    this.directory =
+      options.directory ??
+      new EnsDirectory({
+        rpcUrl: options.sepoliaRpc ?? "https://ethereum-sepolia-rpc.publicnode.com",
+        registrarAddress: (options.registrar ?? SEPOLIA_DEPLOYMENT.registrar) as `0x${string}`,
+        resolverAddress: (options.resolver ?? SEPOLIA_DEPLOYMENT.resolver) as `0x${string}`,
+        parentName: parent,
+        fromBlock: BigInt(options.deployBlock ?? SEPOLIA_DEPLOYMENT.deployBlock),
+        knownLabels: options.knownLabels ?? SEPOLIA_DEPLOYMENT.services,
+        ...(options.openRegistrar
+          ? {
+              openRegistrarAddress: options.openRegistrar as `0x${string}`,
+              registryAddress: (options.registry ?? SEPOLIA_DEPLOYMENT.registry) as `0x${string}`,
+            }
+          : {}),
+        ...(options.corroborateWith ? { corroborateWith: options.corroborateWith } : {}),
+      });
+    // Duck-typed, not `instanceof Budget`: this package bundles its own copy of `@tollgate/discovery`
+    // (see tsup.config.ts), so a `Budget` constructed against the *unbundled* package — exactly what
+    // our own agent does — is a different class reference despite being identical in shape.
+    // `instanceof` would silently fail across that boundary and this would try to parse the object as
+    // a decimal string instead. A caller passes either a decimal string or something budget-shaped.
+    this.budgetState =
+      typeof options.budget === "string" || options.budget === undefined
+        ? new Budget(options.budget ? toBaseUnits(options.budget, HBAR) : 0n, HBAR)
+        : options.budget;
   }
 
   /** What the SDK is allowed to spend, and what it has spent. */
@@ -132,14 +193,23 @@ export class Tollgate {
     } catch (err) {
       throw new CatalogueUnavailableError((err as Error)?.message ?? String(err));
     }
-    const scan = this.directory.lastScan;
+    // `lastScan` is an `EnsDirectory` extra, not part of the `Directory` contract — an injected
+    // directory (a test's, a caller's own) need not carry scan provenance to be listed against.
+    const scan = (this.directory as Partial<EnsDirectory>).lastScan ?? {
+      fromLogs: candidates.length,
+      recovered: [],
+      selfListed: [],
+    };
     this.discovery = {
       total: candidates.length,
       fromLogs: scan.fromLogs,
       recovered: scan.recovered,
+      selfListed: scan.selfListed,
       ...(scan.scanFailed ? { scanFailed: scan.scanFailed } : {}),
     };
-    this.cached = candidates.map((c) => new ServiceHandle(c, this.budgetState, this.options.hedera));
+    this.cached = candidates.map(
+      (c) => new ServiceHandle(c, this.budgetState, this.options.hedera, this.options.purchase),
+    );
     return this.cached;
   }
 

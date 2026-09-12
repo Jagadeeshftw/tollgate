@@ -18,9 +18,9 @@ import { freePort, listenOrFail, startDevnet } from "@tollgate/devnet";
 import { GraphDataSource } from "@tollgate/graph";
 import { createApp, HcsAuditLog } from "@tollgate/service";
 
+import { Budget, EnsDirectory } from "@tollgate/discovery";
+
 import { ask } from "./agent.js";
-import { Budget } from "./budget.js";
-import { EnsDirectory } from "./directory.js";
 import { MissingModelCredentialsError } from "./model.js";
 import { ModelReasoner } from "./reasoner.js";
 import { collectTrace, consoleTrace, type TraceEvent } from "./trace.js";

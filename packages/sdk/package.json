@@ -1,27 +1,58 @@
 {
   "name": "@tollgatehq/sdk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Discover data services by ENS name and pay for them per call over x402 on Hedera",
   "license": "MIT",
   "type": "module",
-  "main": "src/index.ts",
-  "types": "src/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
   },
-  "files": ["src", "README.md"],
-  "keywords": ["x402", "ens", "hedera", "agent", "micropayments"],
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "x402",
+    "ens",
+    "hedera",
+    "agent",
+    "micropayments"
+  ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "tsup",
+    "prepare": "pnpm run build",
+    "prepublishOnly": "pnpm run build && pnpm run test"
   },
   "dependencies": {
-    "@tollgate/agent": "workspace:*",
-    "@tollgate/x402-client": "workspace:*"
+    "@x402/core": "2.24.0",
+    "@x402/hedera": "2.24.0",
+    "viem": "^2.56.1"
   },
   "devDependencies": {
+    "@tollgate/discovery": "workspace:*",
+    "@tollgate/x402-client": "workspace:*",
     "@types/node": "^24.10.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jagadeeshftw/tollgate.git",
+    "directory": "packages/sdk"
   }
 }

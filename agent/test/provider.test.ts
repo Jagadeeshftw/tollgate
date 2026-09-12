@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { MissingModelCredentialsError, type StructuredModel, type StructuredRequest } from "../src/model.js";
 import { AnthropicModel, OpenAiModel, selectModel } from "../src/providers/index.js";
 import { ModelReasoner } from "../src/reasoner.js";
-import { priceOf } from "../src/policy.js";
+import { priceOf } from "@tollgate/discovery";
 import { UNISWAP } from "./support.js";
 
 /**

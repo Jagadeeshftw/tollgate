@@ -22,6 +22,9 @@ const PLAN = [
   [5, ["^spec/PHASE-0-GATES\\.md$"]],
   [6, ["^contracts/(foundry\\.toml|\\.gitignore)$", "^contracts/src/(interfaces|libraries|config)/"]],
   [7, ["^contracts/src/TollgateRegistrar\\.sol$"]],
+  // Post-sequence contract work, placed before commit 8's broad `^contracts/test/` so it is not
+  // mis-slotted into the historical fork-test commit.
+  [29, ["^contracts/src/OpenTollgateRegistrar\\.sol$", "^contracts/test/OpenTollgateRegistrar\\.t\\.sol$"]],
   [8, ["^contracts/test/", "^contracts/remappings\\.txt$", "^\\.gitmodules$", "^contracts/lib/forge-std/?$"]],
   [9, ["^\\.github/"]],
   [10, ["^packages/x402-client/"]],
@@ -62,7 +65,11 @@ const PLAN = [
   // Work that landed after the planned sequence. The plan describes how the repository was built to
   // commit 28; everything since is ordinary development and is numbered past the end rather than
   // retrofitted into it, so the original sequence stays readable as the record it is.
-  [29, ["^substreams/", "^packages/sdk/", "^scripts/gate-sdk\\.ts$"]],
+  [29, [
+    "^substreams/", "^packages/sdk/", "^packages/discovery/", "^scripts/gate-sdk\\.ts$",
+    "^web/ui/app/(operator|docs)/", "^web/ui/components/(operator|docs)/", "^web/ui/lib/deployment\\.ts$",
+    "^web/ui/lib/records\\.ts$", "^LICENSE$",
+  ]],
 ];
 
 /**
@@ -75,10 +82,27 @@ const PLAN = [
  * commit keeps the check honest rather than silencing it: imports are validated against the commit
  * where they are actually introduced, and anything added beyond that still fails.
  */
-const TOUCHED_LATER = { "scripts/gates.ts": 26 };
+const TOUCHED_LATER = {
+  "scripts/gates.ts": 26,
+  // agent/src/{directory,policy,budget}.ts were reduced to re-export shims when discovery moved to
+  // @tollgate/discovery, then deleted once the agent was refactored to consume @tollgatehq/sdk
+  // directly (still post-sequence, 29) — no longer present, entries kept only as a record of why.
+  "agent/src/types.ts": 29,
+  // The agent refactor itself: these files' original contents land at 17-19 as planned; consuming
+  // @tollgate/discovery and @tollgatehq/sdk directly is post-sequence work, validated at 29.
+  "agent/src/agent.ts": 29,
+  "agent/src/index.ts": 29,
+  "agent/src/trace.ts": 29,
+  "agent/src/reasoner.ts": 29,
+  "agent/src/demo.ts": 29,
+  "agent/test/support.ts": 29,
+  "agent/test/agent.test.ts": 29,
+  "agent/test/policy.test.ts": 29,
+  "agent/test/provider.test.ts": 29,
+};
 
 const files = execSync(
-  "find . -type f -not -path '*/node_modules/*' -not -path './.git/*' " +
+  "find . -type f -not -path '*/node_modules/*' -not -path './.git/*' -not -path './.git' " +
     "-not -path './contracts/out/*' -not -path './contracts/cache/*' -not -path './contracts/lib/*' " +
     "-not -path './web/ui/.next/*' -not -path './web/ui/out/*' -not -path './scripts/tmp/*' " +
     "-not -path '*/target/*' " +

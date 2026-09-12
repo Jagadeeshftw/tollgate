@@ -254,12 +254,16 @@ contract TollgateRegistrarForkTest is Test {
     ///      node that still resolves to a live endpoint would keep taking payments after takedown.
     function test_revoke_clearsRecordsAndBurnsName() public {
         bytes32 node = _list();
+        // Precondition, added 12 September: without it the post-revoke assertion below was
+        // vacuous — it used the raw labelhash, for which ownerOf is zero whether or not the name
+        // exists. Proving the name is owned first is what makes "no longer owned" mean anything.
+        assertEq(registry.ownerOf(TollgateRecordsLib.tokenId(LABEL)), operator, "name should be owned before revoke");
 
         registrar.revoke(LABEL);
 
         assertEq(resolver.text(node, TollgateRecordsLib.X402_PRICE), "", "records should be cleared");
         assertEq(
-            registry.ownerOf(TollgateRecordsLib.labelId(LABEL)),
+            registry.ownerOf(TollgateRecordsLib.tokenId(LABEL)),
             address(0),
             "name should no longer be owned"
         );

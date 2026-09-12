@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { Budget, BudgetExceededError } from "../src/budget.js";
-import { affordablePlans, priceOf, toBaseUnits } from "../src/policy.js";
+import { Budget, BudgetExceededError } from "@tollgate/discovery";
+import { affordablePlans, priceOf, toBaseUnits } from "@tollgate/discovery";
 import { ALL_DEX, UNISWAP } from "./support.js";
 
 describe("Budget", () => {

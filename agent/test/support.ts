@@ -1,8 +1,7 @@
 import type { PaidResponse } from "@tollgate/x402-client";
 
-import type { Directory } from "../src/directory.js";
+import type { Candidate, Directory, Plan } from "@tollgate/discovery";
 import type { AssessmentJudgment, PurchaseJudgment, Reasoner } from "../src/reasoner.js";
-import type { Candidate, Plan } from "../src/types.js";
 
 export const UNISWAP: Candidate = {
   label: "uniswap-pools",

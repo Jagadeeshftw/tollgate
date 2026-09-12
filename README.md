@@ -47,11 +47,12 @@ RESULT=$(cast call 0x4A1817d13E9cF196f471725176355C1234b63C70 \
   "resolve(bytes,bytes)(bytes,address)" "$DNS" \
   "$(cast calldata "text(bytes32,string)" "$(cast namehash "$NAME")" "x402:price")" \
   --rpc-url https://ethereum-sepolia-rpc.publicnode.com | head -1)
-cast --abi-decode "text()(string)" "$RESULT"     # → "0.001"
+cast --abi-decode "text()(string)" "$RESULT"     # → 0.001
 ```
 
-The version previously shown here did not work: `cast --to-hex` takes a number, not raw bytes, so
-it failed before reaching the chain. This one was run against live Sepolia before it was committed.
+This is `docs/samples/operator/resolve-listing.sh`, which `pnpm gate:docs` runs. The version
+previously shown here did not work: `cast --to-hex` takes a number, not raw bytes, so it failed
+before reaching the chain.
 
 ### Discovery runs on resolver recovery, not on the event log
 

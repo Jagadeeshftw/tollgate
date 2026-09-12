@@ -1,4 +1,4 @@
-import { Budget, priceOf, type Candidate } from "@tollgate/agent";
+import { priceOf, toBaseUnits, type Candidate } from "@tollgate/discovery";
 import {
   PriceRejectedError,
   SettlementFailedError as ClientSettlementFailedError,
@@ -6,15 +6,15 @@ import {
   quote as readChallenge,
 } from "@tollgate/x402-client";
 
-import { HBAR } from "./defaults.js";
 import {
   BudgetExceededError,
   NoPayerError,
+  ServiceFailedAfterPaymentError,
   OverQuoteError,
   SettlementFailedError,
   UnpriceableServiceError,
 } from "./errors.js";
-import type { HederaPayer } from "./tollgate.js";
+import type { BudgetLike, HederaPayer } from "./tollgate.js";
 
 export interface Quote {
   readonly label: string;
@@ -31,7 +31,21 @@ export interface Quote {
 
 export interface PaidResult<T = unknown> {
   readonly data: T;
+  /** The raw response body, before the best-effort JSON.parse that produced `data`. A caller that
+   *  needs the exact bytes on the wire — to log a transfer size, or because parsing lost something
+   *  `data` cannot represent — has it without re-serializing `data` and hoping that matches. */
+  readonly body: string;
   readonly units: number;
+  /** The server's HTTP status for the resource response, after settlement. Always 2xx here — a
+   *  non-2xx status throws {@link ServiceFailedAfterPaymentError} instead of returning. Carried on
+   *  the result anyway so a caller need not special-case "200" versus some other success code. */
+  readonly status: number;
+  /** The 402 challenge the server actually issued for this call — its own quote, not the ENS record. */
+  readonly challenge: {
+    readonly amountBaseUnits: bigint;
+    readonly asset: string;
+    readonly payTo: string;
+  };
   readonly payment: {
     readonly amountBaseUnits: bigint;
     readonly transactionId: string;
@@ -45,8 +59,16 @@ export interface PaidResult<T = unknown> {
 export class ServiceHandle {
   constructor(
     readonly candidate: Candidate,
-    private readonly budget: Budget,
+    private readonly budget: BudgetLike,
     private readonly payer?: HederaPayer,
+    /**
+     * How a purchase is executed. Defaults to a real x402 payment.
+     *
+     * Injectable so a caller can assert on the guard rails — the budget check, the ceiling, the
+     * decline paths — without spending real money on every assertion. The default is the real
+     * thing; there is no "simulate" mode that could be left on by accident.
+     */
+    private readonly purchase: typeof payAndFetch = payAndFetch,
   ) {}
 
   get label(): string {
@@ -146,11 +168,13 @@ export class ServiceHandle {
     }
     if (!this.payer) throw new NoPayerError(this.label);
 
-    const ceiling = maxAmount === undefined ? undefined : toBase(maxAmount, priced.asset);
+    // The same converter discovery prices with. A second implementation here once truncated past the
+    // asset's precision where this one refuses, and accepted input this one rejects.
+    const ceiling = maxAmount === undefined ? undefined : toBaseUnits(maxAmount, priced.asset);
 
     let response;
     try {
-      response = await payAndFetch(
+      response = await this.purchase(
         this.url(limit),
         { accountId: this.payer.accountId, privateKey: this.payer.privateKey, ...(this.payer.network ? { network: this.payer.network } : {}) },
         {
@@ -177,6 +201,12 @@ export class ServiceHandle {
     }
 
     const paid = BigInt(response.challenge.amount);
+    if (response.status < 200 || response.status >= 300) {
+      // Settled, then failed. The money moved if the server reported a transaction, so the budget
+      // carries it; the failure body is surfaced as an error, never handed back as data.
+      if (response.transactionId && this.budget.canAfford(paid)) this.budget.reserve(paid);
+      throw new ServiceFailedAfterPaymentError(response.status, paid, response.transactionId, response.body);
+    }
     // Reserve what was actually charged, not what was quoted — an operator may have repriced.
     this.budget.reserve(paid);
 
@@ -189,7 +219,14 @@ export class ServiceHandle {
 
     return {
       data,
+      body: response.body,
       units: limit,
+      status: response.status,
+      challenge: {
+        amountBaseUnits: paid,
+        asset: response.challenge.asset,
+        payTo: response.challenge.payTo,
+      },
       payment: {
         amountBaseUnits: paid,
         transactionId: response.transactionId,
@@ -200,15 +237,10 @@ export class ServiceHandle {
     };
   }
 
+  /** Same construction as the agent's: `limit` is set, so an endpoint that already carries one is not doubled. */
   private url(limit: number): string {
-    const base = this.candidate.endpoint;
-    const sep = base.includes("?") ? "&" : "?";
-    return `${base}${sep}limit=${limit}`;
+    const url = new URL(this.candidate.endpoint);
+    url.searchParams.set("limit", String(limit));
+    return url.toString();
   }
-}
-
-function toBase(amount: string, asset: string): bigint {
-  if (asset !== HBAR) throw new Error(`unsupported asset ${asset}`);
-  const [whole = "0", frac = ""] = amount.split(".");
-  return BigInt(whole) * 100_000_000n + BigInt((frac + "00000000").slice(0, 8));
 }

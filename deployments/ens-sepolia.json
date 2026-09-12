@@ -14,5 +14,7 @@
     "curve-pools"
   ],
   "deployBlock": 11613900,
-  "deployBlockNote": "Lower bound for event scans. Real Sepolia rejects getLogs from block 0, so discovery must start here; the registrar cannot have events before it existed."
+  "deployBlockNote": "Lower bound for event scans. Real Sepolia rejects getLogs from block 0, so discovery must start here; the registrar cannot have events before it existed.",
+  "openRegistrar": "0x58aaefd8c76ac8fe7e32379bdb60cc18d4f8f8c5",
+  "openRegistrarDeployBlock": 11690793
 }

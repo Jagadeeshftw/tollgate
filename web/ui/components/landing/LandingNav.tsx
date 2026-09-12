@@ -58,9 +58,11 @@ export function LandingNav() {
           </a>
           <Link
             href="/dashboard"
+            // Secondary, not gold: the demo is a "try it", and the page's primary actions are the two
+            // paths in the hero. A gold nav button would outrank both on every screen.
             className={cn(
-              "rounded-lg bg-judgment px-4 py-2 text-[13.5px] font-semibold text-ground",
-              "transition-opacity hover:opacity-90",
+              "rounded-lg border border-rule-lit px-4 py-2 text-[13.5px] font-semibold text-ink",
+              "transition-colors hover:border-judgment",
             )}
           >
             Try a live run

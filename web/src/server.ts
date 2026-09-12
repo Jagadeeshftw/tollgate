@@ -59,6 +59,13 @@ interface LiveDeployment {
   services?: string[];
   /** Lower bound for event scans — real Sepolia rejects `getLogs` from block 0. */
   deployBlock?: number;
+  /** Subname registry both registrars mint into. Needed to check enumerated labels are live. */
+  registry?: `0x${string}`;
+  /**
+   * Where anyone may list for themselves. Absent means discovery behaves exactly as it did before
+   * open listing existed — which is what makes rollback deleting this one field.
+   */
+  openRegistrar?: `0x${string}`;
 }
 
 function readJson<T>(relative: string): T {
@@ -85,6 +92,9 @@ function directory(): EnsDirectory {
       // The services this deployment listed. Used only to decide which names to resolve — every
       // one is still read from ENS and dropped if the chain does not back it.
       knownLabels: live.services ?? [],
+      ...(live.openRegistrar && live.registry
+        ? { openRegistrarAddress: live.openRegistrar, registryAddress: live.registry }
+        : {}),
     });
   }
   if (!devnet) throw new Error("devnet has not booted");

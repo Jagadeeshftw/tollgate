@@ -28,8 +28,11 @@ export function AppBar({
       <Link href="/" className="text-[15px] font-extrabold tracking-tight text-ink">
         Tollgate
       </Link>
-      <nav className="flex items-center gap-1">{nav}</nav>
-      <div className="flex items-center gap-4 font-mono text-[11.5px] text-dim">{status}</div>
+      {/* min-w-0 lets this grid item shrink below its content's width; without it, four-or-more tabs
+          push the header itself wider than the viewport instead of scrolling within their own row. */}
+      <nav className="flex min-w-0 items-center gap-1 overflow-x-auto">{nav}</nav>
+      {/* Status is secondary: below `sm` it yields its width to the navigation rather than wrapping into it. */}
+      <div className="hidden items-center gap-4 font-mono text-[11.5px] text-dim sm:flex">{status}</div>
     </header>
   );
 }
@@ -47,7 +50,7 @@ export function NavTab({
     <Link
       href={href}
       className={cn(
-        "rounded-md px-3 py-1.5 text-[13px] transition-colors",
+        "rounded-md px-3 py-1.5 text-[13px] whitespace-nowrap transition-colors",
         active ? "bg-surface text-ink" : "text-muted hover:text-ink",
       )}
     >
