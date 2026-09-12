@@ -18,7 +18,7 @@ const quote = svc.quote({ limit: 10 });            // never spends, never calls 
 if (!quote.affordable) return;
 
 const res = await svc.fetch({ limit: 10, maxAmount: "0.015" });
-res.data;                    // the response body, verbatim
+res.data;                    // the response body, parsed
 res.payment.hashscanUrl;     // proof the transfer happened
 ```
 
@@ -47,7 +47,9 @@ Three environment variables get you to a paid request:
 | `HEDERA_OPERATOR_KEY` | **ECDSA (secp256k1)**. An ED25519 key parses and then signs for no account |
 | `SEPOLIA_RPC_URL` | optional; defaults to a public endpoint — see *Discovery* below |
 
-A runnable end-to-end script is in [`examples/paid-request.ts`](examples/paid-request.ts).
+A runnable end-to-end script is
+[`packages/sdk/examples/paid-request.ts`](https://github.com/Jagadeeshftw/tollgate/blob/main/packages/sdk/examples/paid-request.ts)
+in the repository.
 
 ## API
 
@@ -56,10 +58,13 @@ A runnable end-to-end script is in [`examples/paid-request.ts`](examples/paid-re
 | Option | Meaning |
 |---|---|
 | `hedera` | account to pay from. Omit to discover and quote without a wallet |
-| `budget` | total spend across the instance's lifetime, decimal HBAR |
+| `budget` | total spend across the instance's lifetime, decimal HBAR — or an existing `Budget`, to share one across more than one `Tollgate` or hold onto it after construction |
 | `parent` · `registrar` · `resolver` · `deployBlock` | override the deployment; defaults are the live Sepolia one |
 | `knownLabels` | labels to resolve even when the event log misses them — see *Discovery* |
+| `openRegistrar` · `registry` | an open registrar to enumerate, where anyone may list for themselves; found listings are self-published and unvetted — `lastDiscovery.selfListed` names them |
 | `corroborateWith` | extra RPCs to cross-check discovery against; `[]` disables |
+| `directory` | read the catalogue from somewhere other than this deployment's own ENS records. Chiefly for tests — a fixed, scripted catalogue with no network call |
+| `purchase` | override how a purchase is executed. Defaults to a real x402 payment; injectable so a caller can assert on budget and ceiling enforcement without spending real money |
 
 `tollgate.list()` · `tollgate.get(label)` · `tollgate.priceAll(units)` · `tollgate.budget` ·
 `tollgate.lastDiscovery`
@@ -74,7 +79,16 @@ A runnable end-to-end script is in [`examples/paid-request.ts`](examples/paid-re
 - **`fetch({ limit, maxAmount })`** — buys it. Two independent ceilings: `maxAmount` is what *this
   call* will pay, checked against the server's quote **before anything is signed**; the instance
   budget is what *every call together* may spend, and is checked first — a purchase that would
-  breach it never contacts the service.
+  breach it never contacts the service. Resolves to:
+
+  | Field | Meaning |
+  |---|---|
+  | `data` | the response body, parsed as JSON where possible |
+  | `body` | the raw response body, before that parse — the exact bytes on the wire |
+  | `status` | the server's HTTP status for the resource response. Always 2xx here; a non-2xx status throws `ServiceFailedAfterPaymentError` instead of returning |
+  | `challenge` | the 402 the server actually issued for this call — its own quote, not the ENS record |
+  | `payment` | what was charged: amount, Hedera transaction id, a HashScan link, and who it went to |
+  | `budget` | what the instance has spent and has remaining, after this call |
 
 ## Errors are typed, because you have to tell them apart
 
@@ -88,6 +102,7 @@ Every error carries a stable `code` and extends `TollgateError`.
 | `no_payer` | `fetch()` without a configured wallet | no |
 | `over_quote` | server asked above `maxAmount` | no — refused before signing |
 | `unpriceable_service` | records cannot be turned into a price | no |
+| `service_failed_after_payment` | the payment settled and the service then failed to serve | **yes** — the budget is charged |
 | `settlement_failed` | signed and submitted; server still would not serve | **unknown** |
 
 That last row is the honest one. **x402 has no settlement receipt a client can rely on**: the
@@ -120,17 +135,11 @@ if (scan.recovered.length) {
 
 ## Status
 
-ESM-only, Node 22+. Ships TypeScript source and is consumed through `tsx` or any TS-aware runner;
-a compiled build lands with the extraction described below.
+ESM-only, Node 22+. Ships a single bundled `dist/index.js` with no private or workspace
+dependencies — `@x402/core`, `@x402/hedera` and `viem` are its only runtime dependencies, and it
+never installs a model SDK.
 
-`pnpm gate:sdk --pay` in the parent repository installs this package into a scratch directory as a
-third party would, then lists the catalogue, quotes, proves the budget refusal, and completes one
-real paid request. A package that works only in the repository that built it has proved nothing.
-
-**Known limitation.** It currently imports discovery and pricing from `@tollgate/agent`, which
-transitively pulls in `openai` and `@anthropic-ai/sdk` — about 1.2s of import cost for a package
-that never calls a model. That is temporary and unpublishable as-is: the four model-free modules
-(`directory`, `policy`, `budget`, `types` — 473 lines, no coupling) are being extracted into their
-own package, and this depends on that instead. Publication waits for it, because shipping an SDK
-that installs two LLM SDKs while claiming it never touches a model is the artifact arguing against
-itself.
+`pnpm gate:sdk-pack` in the parent repository packs this package as `npm publish` would, installs
+the tarball into a clean scratch project as a third party would, and there lists the catalogue,
+quotes, proves the budget refusal, and completes a typed refusal end to end. A package that works
+only in the repository that built it has proved nothing.
