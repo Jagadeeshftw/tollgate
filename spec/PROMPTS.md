@@ -442,3 +442,32 @@ Two smaller things from the same run, both recorded in `COMMIT-PLAN.md`:
 - **Do not backdate to match a plan.** The plan said the 4th; execution happened on the 5th. Dates
   are evidence, and a graded history whose dates are fiction is worth less than one that is late and
   true.
+
+## 13 September 2026 — open listing, rolled out; and a check proven by cleaning up
+
+**Prompt:** let strangers list services under `tollgatehq.eth`; answer the rollback question in
+writing before any transaction; drive the console with a real wallet on live Sepolia.
+
+**The rollback answer was rehearsed, not argued.** The open registrar is additive — same registry,
+same resolver, the curated registrar and its three listings untouched — and going live or rolling
+back is one field in `deployments/ens-sepolia.json`. That claim was run end to end on a Sepolia fork
+with the real script and the real deployer key before the real transaction: deploy, grant, a
+stranger lists and is refused on `x402:settlement`, discovery finds the listing with the event log
+returning nothing, rollback shuts the door and the curated catalogue still resolves.
+
+**The dead-listing check was first proven by accident of cleaning up.** The browser test left a
+real listing with a fake endpoint. Withdrawing it cleared its records and burned the name — but the
+open registrar's on-chain index is append-only and still names it. Discovery dropped it anyway,
+back to three services, because it checks the registry reports each enumerated label as live. That
+is a real property, exercised live for the first time by a cleanup step, and worth recording as
+such rather than as a test we designed.
+
+**The console's one moment happened off-screen.** Every outcome rendered at the foot of the page,
+below the button that caused it. On a laptop screen a judge clicking "Redirect my settlement" saw
+nothing change. For a page whose only purpose is that refusal, that is the feature failing
+silently, not a layout nit. Outcomes now render inside the step that produced them, and a
+visibility check — canaried against the old layout first — asserts the outcome is on screen.
+
+**Verify the mechanism before an irreversible instruction, again.** Asked to push a README fix to
+`main`, the first check was whether either Railway service is connected to the repository — if it
+were, the push would itself have been a deploy. Neither is; both were deployed with `railway up`.
