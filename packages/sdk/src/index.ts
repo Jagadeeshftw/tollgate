@@ -8,6 +8,7 @@ export {
   CatalogueUnavailableError,
   NoPayerError,
   OverQuoteError,
+  ServiceFailedAfterPaymentError,
   ServiceNotFoundError,
   SettlementFailedError,
   TollgateError,

@@ -1,4 +1,4 @@
-import { Budget, priceOf, type Candidate } from "@tollgate/agent";
+import { Budget, priceOf, toBaseUnits, type Candidate } from "@tollgate/discovery";
 import {
   PriceRejectedError,
   SettlementFailedError as ClientSettlementFailedError,
@@ -10,6 +10,7 @@ import { HBAR } from "./defaults.js";
 import {
   BudgetExceededError,
   NoPayerError,
+  ServiceFailedAfterPaymentError,
   OverQuoteError,
   SettlementFailedError,
   UnpriceableServiceError,
@@ -146,7 +147,9 @@ export class ServiceHandle {
     }
     if (!this.payer) throw new NoPayerError(this.label);
 
-    const ceiling = maxAmount === undefined ? undefined : toBase(maxAmount, priced.asset);
+    // The same converter discovery prices with. A second implementation here once truncated past the
+    // asset's precision where this one refuses, and accepted input this one rejects.
+    const ceiling = maxAmount === undefined ? undefined : toBaseUnits(maxAmount, priced.asset);
 
     let response;
     try {
@@ -177,6 +180,12 @@ export class ServiceHandle {
     }
 
     const paid = BigInt(response.challenge.amount);
+    if (response.status < 200 || response.status >= 300) {
+      // Settled, then failed. The money moved if the server reported a transaction, so the budget
+      // carries it; the failure body is surfaced as an error, never handed back as data.
+      if (response.transactionId && this.budget.canAfford(paid)) this.budget.reserve(paid);
+      throw new ServiceFailedAfterPaymentError(response.status, paid, response.transactionId, response.body);
+    }
     // Reserve what was actually charged, not what was quoted — an operator may have repriced.
     this.budget.reserve(paid);
 
@@ -200,15 +209,10 @@ export class ServiceHandle {
     };
   }
 
+  /** Same construction as the agent's: `limit` is set, so an endpoint that already carries one is not doubled. */
   private url(limit: number): string {
-    const base = this.candidate.endpoint;
-    const sep = base.includes("?") ? "&" : "?";
-    return `${base}${sep}limit=${limit}`;
+    const url = new URL(this.candidate.endpoint);
+    url.searchParams.set("limit", String(limit));
+    return url.toString();
   }
-}
-
-function toBase(amount: string, asset: string): bigint {
-  if (asset !== HBAR) throw new Error(`unsupported asset ${asset}`);
-  const [whole = "0", frac = ""] = amount.split(".");
-  return BigInt(whole) * 100_000_000n + BigInt((frac + "00000000").slice(0, 8));
 }

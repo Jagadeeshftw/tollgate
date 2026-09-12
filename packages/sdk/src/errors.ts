@@ -67,6 +67,26 @@ export class OverQuoteError extends TollgateError {
   }
 }
 
+/**
+ * The payment settled and the service then failed to serve.
+ *
+ * x402 settles before the resource is returned, so "paid" and "received data" are separate events.
+ * When the server reports a transaction id the money moved, and the budget is charged for it — an
+ * SDK that forgets a real spend lets a caller overspend. The failure body is never returned as data.
+ */
+export class ServiceFailedAfterPaymentError extends TollgateError {
+  readonly code = "service_failed_after_payment";
+  constructor(
+    readonly status: number,
+    readonly amount: bigint,
+    readonly transactionId: string,
+    readonly body: string,
+  ) {
+    super(`paid ${amount} (tx ${transactionId || "unreported"}), then the service returned ${status}`);
+    this.name = "ServiceFailedAfterPaymentError";
+  }
+}
+
 /** `fetch()` was called on an instance constructed without a Hedera payer. Nothing was spent. */
 export class NoPayerError extends TollgateError {
   readonly code = "no_payer";
