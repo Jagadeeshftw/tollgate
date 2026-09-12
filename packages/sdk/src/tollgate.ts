@@ -30,6 +30,13 @@ export interface TollgateOptions {
    * rely on the event log alone, accepting that public endpoints under-report it without erroring.
    */
   readonly knownLabels?: readonly string[];
+  /**
+   * An open registrar to enumerate — where anyone may list for themselves. Listings found this way
+   * are self-published and unvetted; `lastDiscovery.selfListed` names them so a caller can weigh
+   * them differently. Omit to read the curated catalogue only.
+   */
+  readonly openRegistrar?: string;
+  readonly registry?: string;
 }
 
 /** How the last `list()` was assembled — reported, because a shrinking catalogue must not be silent. */
@@ -46,6 +53,8 @@ export interface DiscoveryReport {
   readonly recovered: readonly string[];
   /** Set when every endpoint failed the log query outright. */
   readonly scanFailed?: string;
+  /** Listings found in the open registrar: self-published, not vetted by anyone. */
+  readonly selfListed: readonly string[];
 }
 
 /** A read-only view of what has been spent. */
@@ -79,7 +88,7 @@ export interface BudgetView {
 export class Tollgate {
   private readonly directory: EnsDirectory;
   private readonly budgetState: Budget;
-  private discovery: DiscoveryReport = { total: 0, fromLogs: 0, recovered: [] };
+  private discovery: DiscoveryReport = { total: 0, fromLogs: 0, recovered: [], selfListed: [] };
   private cached?: ServiceHandle[];
 
   constructor(private readonly options: TollgateOptions = {}) {
@@ -91,6 +100,12 @@ export class Tollgate {
       parentName: parent,
       fromBlock: BigInt(options.deployBlock ?? SEPOLIA_DEPLOYMENT.deployBlock),
       knownLabels: options.knownLabels ?? SEPOLIA_DEPLOYMENT.services,
+      ...(options.openRegistrar
+        ? {
+            openRegistrarAddress: options.openRegistrar as `0x${string}`,
+            registryAddress: (options.registry ?? SEPOLIA_DEPLOYMENT.registry) as `0x${string}`,
+          }
+        : {}),
       ...(options.corroborateWith ? { corroborateWith: options.corroborateWith } : {}),
     });
     this.budgetState = new Budget(
@@ -137,6 +152,7 @@ export class Tollgate {
       total: candidates.length,
       fromLogs: scan.fromLogs,
       recovered: scan.recovered,
+      selfListed: scan.selfListed,
       ...(scan.scanFailed ? { scanFailed: scan.scanFailed } : {}),
     };
     this.cached = candidates.map((c) => new ServiceHandle(c, this.budgetState, this.options.hedera));

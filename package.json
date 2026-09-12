@@ -22,7 +22,8 @@
     "ens:demo-delegation": "tsx --env-file-if-exists=.env scripts/demo-delegation.ts",
     "health": "tsx scripts/health.ts",
     "hedera:rotate-hosted": "tsx --env-file-if-exists=.env scripts/hedera-rotate-hosted.ts",
-    "gate:sdk": "tsx --env-file-if-exists=.env scripts/gate-sdk.ts"
+    "gate:sdk": "tsx --env-file-if-exists=.env scripts/gate-sdk.ts",
+    "open-registrar": "tsx --env-file-if-exists=.env scripts/open-registrar.ts"
   },
   "devDependencies": {
     "@hiero-ledger/sdk": "2.85.0",

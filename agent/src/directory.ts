@@ -1,4 +1,13 @@
-import { createPublicClient, http, namehash, parseAbi, type Address, type PublicClient } from "viem";
+import {
+  createPublicClient,
+  http,
+  keccak256,
+  namehash,
+  parseAbi,
+  toHex,
+  type Address,
+  type PublicClient,
+} from "viem";
 import { sepolia } from "viem/chains";
 
 import type { Candidate } from "./types.js";
@@ -9,6 +18,15 @@ const REGISTRAR_ABI = parseAbi([
 ]);
 
 const RESOLVER_ABI = parseAbi(["function text(bytes32 node, string key) view returns (string)"]);
+
+/** OpenTollgateRegistrar's enumeration views — plain eth_call, which public endpoints serve correctly. */
+const OPEN_REGISTRAR_ABI = parseAbi([
+  "function labelCount() view returns (uint256)",
+  "function labelsFrom(uint256 start, uint256 max) view returns (string[])",
+]);
+
+/** Liveness: the registry reports the zero address for a name that is expired or unregistered. */
+const REGISTRY_ABI = parseAbi(["function ownerOf(uint256 tokenId) view returns (address)"]);
 
 const KEYS = {
   context: "agent-context",
@@ -47,6 +65,19 @@ export interface EnsDirectoryConfig {
    * endpoints under-reports; `eth_call` against the resolver does not.
    */
   readonly knownLabels?: readonly string[];
+  /**
+   * An `OpenTollgateRegistrar` to enumerate, where anyone may list for themselves.
+   *
+   * Strangers' labels cannot be known in advance, so `knownLabels` cannot cover them, and the event
+   * log is exactly the path public endpoints under-report. The open registrar keeps an on-chain
+   * list of every label it minted, read here by `eth_call`. Omit to behave exactly as before.
+   */
+  readonly openRegistrarAddress?: Address;
+  /**
+   * The subname registry, used to drop enumerated labels that have expired or been unregistered.
+   * Required alongside `openRegistrarAddress`: the enumeration is append-only and includes both.
+   */
+  readonly registryAddress?: Address;
 }
 
 /**
@@ -122,16 +153,22 @@ export class EnsDirectory implements Directory {
       (l) => !discovered.includes(l) && !revokedLabels.has(l),
     );
 
-    const labels = [...discovered, ...hinted];
+    const enumerated = (await this.enumerateOpen()).filter(
+      (l) => !discovered.includes(l) && !hinted.includes(l) && !revokedLabels.has(l),
+    );
+
+    const labels = [...discovered, ...hinted, ...enumerated];
     const candidates = await Promise.all(labels.map((label) => this.read(label)));
     const found = candidates.filter((c): c is Candidate => c !== null);
 
     // Surfaced rather than swallowed: if the log scan under-reported, the operator needs to know
     // the RPC is lying, and the UI needs to be able to say so instead of showing a smaller market.
     const recovered = found.filter((c) => hinted.includes(c.label)).map((c) => c.label);
+    const selfListed = found.filter((c) => enumerated.includes(c.label)).map((c) => c.label);
     this.lastScan = {
       fromLogs: discovered.length,
       recovered,
+      selfListed,
       ...(this.scanFailure ? { scanFailed: this.scanFailure } : {}),
     };
     if (this.scanFailure) {
@@ -151,9 +188,10 @@ export class EnsDirectory implements Directory {
   }
 
   /** How the most recent `list()` was assembled. Read by the UI to report incomplete discovery. */
-  lastScan: { fromLogs: number; recovered: string[]; scanFailed?: string } = {
+  lastScan: { fromLogs: number; recovered: string[]; selfListed: string[]; scanFailed?: string } = {
     fromLogs: 0,
     recovered: [],
+    selfListed: [],
   };
 
   /** Set when every endpoint failed the log query; cleared at the start of each `list()`. */
@@ -223,6 +261,54 @@ export class EnsDirectory implements Directory {
     return [...merged.values()];
   }
 
+  /**
+   * Every live label the open registrar has minted.
+   *
+   * Liveness is checked against the registry because the enumeration is append-only: it still
+   * holds labels that were revoked or have lapsed. A revoked listing also has its records cleared,
+   * so `read()` would drop it anyway — but an expired one keeps its records, and would otherwise be
+   * offered to an agent as a service it can no longer buy from.
+   */
+  private async enumerateOpen(): Promise<string[]> {
+    const open = this.config.openRegistrarAddress;
+    const registry = this.config.registryAddress;
+    if (!open || !registry) return [];
+
+    const count = await this.client.readContract({
+      address: open,
+      abi: OPEN_REGISTRAR_ABI,
+      functionName: "labelCount",
+    });
+    if (count === 0n) return [];
+
+    const PAGE = 100n;
+    const all: string[] = [];
+    for (let start = 0n; start < count; start += PAGE) {
+      const page = await this.client.readContract({
+        address: open,
+        abi: OPEN_REGISTRAR_ABI,
+        functionName: "labelsFrom",
+        args: [start, PAGE],
+      });
+      all.push(...page);
+    }
+    const unique = [...new Set(all)];
+
+    const owners = await this.client.multicall({
+      contracts: unique.map((label) => ({
+        address: registry,
+        abi: REGISTRY_ABI,
+        functionName: "ownerOf" as const,
+        args: [labelId(label)] as const,
+      })),
+      allowFailure: true,
+    });
+    return unique.filter((_, i) => {
+      const r = owners[i];
+      return r?.status === "success" && r.result !== "0x0000000000000000000000000000000000000000";
+    });
+  }
+
   private async read(label: string): Promise<Candidate | null> {
     const name = `${label}.${this.config.parentName}`;
     const node = namehash(name);
@@ -259,4 +345,14 @@ export class EnsDirectory implements Directory {
       schema: record.schema ?? "",
     };
   }
+}
+
+/**
+ * Registry token id for a label: its labelhash with the low 32 bits cleared.
+ *
+ * The registry keys by labelhash with a version in the low bits; the resolver keys by namehash.
+ * Confusing the two addresses the wrong name silently — see `TollgateRecordsLib.labelId`.
+ */
+function labelId(label: string): bigint {
+  return BigInt(keccak256(toHex(label))) & ~((1n << 32n) - 1n);
 }

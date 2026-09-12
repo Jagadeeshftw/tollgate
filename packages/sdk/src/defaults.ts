@@ -13,6 +13,8 @@ export const SEPOLIA_DEPLOYMENT = {
   parent: "tollgatehq.eth",
   /** TollgateRegistrar — emits `ServiceListed` / `ServiceRevoked`. */
   registrar: "0x78155e1b4cd666244d5bdae73ad4a8c53693c661",
+  /** Subname registry under the parent; used to check enumerated listings are still live. */
+  registry: "0x45BF1E3da54d9747Eb12D260fC76C3F5dc35d78e",
   /** ENSv2 PermissionedResolver holding each listing's terms. */
   resolver: "0xeb22a41C9b5f979385A045faaE72E730BF9d0B0C",
   /**
