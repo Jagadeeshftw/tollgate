@@ -1,5 +1,5 @@
-import { formatAmount } from "./policy.js";
-import type { Candidate, Plan, Verdict } from "./types.js";
+import { formatAmount, type Candidate, type Plan } from "@tollgate/discovery";
+import type { Verdict } from "./types.js";
 
 /**
  * Who made a given move.

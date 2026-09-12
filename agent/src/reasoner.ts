@@ -1,9 +1,10 @@
 import { z } from "zod";
 
+import { formatAmount, type Plan } from "@tollgate/discovery";
+
 import type { StructuredModel } from "./model.js";
-import { formatAmount } from "./policy.js";
 import { selectModel } from "./providers/index.js";
-import type { Plan, Verdict } from "./types.js";
+import type { Verdict } from "./types.js";
 
 const PurchaseDecision = z.object({
   chosenPlanIndex: z

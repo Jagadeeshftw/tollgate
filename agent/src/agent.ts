@@ -1,22 +1,19 @@
+import { Budget, formatAmount, planSet, type Directory, type Plan } from "@tollgate/discovery";
 import {
-  payAndFetch,
-  PriceRejectedError,
+  OverQuoteError,
+  ServiceFailedAfterPaymentError,
   SettlementFailedError,
-  type PaidResponse,
-  type PayerConfig,
-} from "@tollgate/x402-client";
+  Tollgate,
+  type HederaPayer,
+} from "@tollgatehq/sdk";
 
-import { Budget } from "./budget.js";
-import type { Directory } from "./directory.js";
-import { formatAmount, planSet } from "./policy.js";
 import type { Reasoner } from "./reasoner.js";
 import type { PlanView, TraceSink } from "./trace.js";
-import type { Candidate, Plan } from "./types.js";
 
 export interface AgentOptions {
   readonly directory: Directory;
   readonly reasoner: Reasoner;
-  readonly payer: PayerConfig;
+  readonly payer: HederaPayer;
   readonly budget: Budget;
   readonly trace: TraceSink;
   /** Quantities the agent may choose between. A dial, not a free integer. */
@@ -27,10 +24,11 @@ export interface AgentOptions {
    * How a purchase is executed. Defaults to a real x402 payment.
    *
    * Injectable so the loop's guard rails — budget arithmetic, the self-imposed ceiling, the
-   * decline paths — can be tested without spending HBAR on every assertion. The default is the
-   * real thing; there is no "simulate" mode that could be left on by accident.
+   * decline paths — can be tested without spending HBAR on every assertion. Passed straight
+   * through to the SDK, which owns the actual purchase mechanics; the default is the real thing —
+   * there is no "simulate" mode that could be left on by accident.
    */
-  readonly purchase?: typeof payAndFetch;
+  readonly purchase?: NonNullable<ConstructorParameters<typeof Tollgate>[0]>["purchase"];
 }
 
 export interface AgentResult {
@@ -54,6 +52,11 @@ const DEFAULT_UNIT_CHOICES = [3, 10, 25, 50] as const;
  * Two guards sit outside the model's reach. `Budget` is arithmetic and cannot be argued with, and
  * the ceiling the agent sets for itself is compared against the actual quote before anything is
  * signed. The model decides what a thing is *worth*; the policy decides what is *permitted*.
+ *
+ * Discovery, pricing and the purchase itself are `@tollgatehq/sdk`'s — this loop is the judgment
+ * layer the SDK deliberately leaves out. It supplies its own `Directory` and `Budget` rather than
+ * letting the SDK build them, because both are shared with the policy layer above (`planSet`
+ * prices every candidate against the same budget the SDK will later charge).
  */
 export async function ask(question: string, options: AgentOptions): Promise<AgentResult> {
   const {
@@ -64,8 +67,15 @@ export async function ask(question: string, options: AgentOptions): Promise<Agen
     trace,
     unitChoices = DEFAULT_UNIT_CHOICES,
     maxPurchases = 3,
-    purchase = payAndFetch,
+    purchase,
   } = options;
+
+  const tollgate = new Tollgate({
+    directory,
+    budget,
+    hedera: payer,
+    ...(purchase ? { purchase } : {}),
+  });
 
   const purchases: { label: string; units: number; transactionId: string }[] = [];
   const collected: { from: string; data: unknown }[] = [];
@@ -78,7 +88,8 @@ export async function ask(question: string, options: AgentOptions): Promise<Agen
     asset: "0.0.0",
   });
 
-  const candidates = await directory.list();
+  const services = await tollgate.list();
+  const candidates = services.map((s) => s.candidate);
   trace({ type: "discovered", candidates });
 
   if (candidates.length === 0) {
@@ -152,13 +163,14 @@ export async function ask(question: string, options: AgentOptions): Promise<Agen
       );
     }
 
-    const url = purchaseUrl(plan.candidate, plan.units);
+    const service = services.find((s) => s.label === plan.candidate.label)!;
     let received: unknown;
     try {
       const ceiling =
         judgment.ceilingBaseUnits < budget.remaining ? judgment.ceilingBaseUnits : budget.remaining;
-      const result: PaidResponse = await purchase(url, payer, {
-        maxAmount: ceiling,
+      const result = await service.fetch({
+        limit: plan.units,
+        maxAmount: formatAmount(ceiling, plan.candidate.asset),
         // One retry, announced. The settlement path has been observed failing transiently and
         // succeeding unchanged moments later; a silent retry would hide how often that happens,
         // which is the number actually worth knowing.
@@ -168,57 +180,61 @@ export async function ask(question: string, options: AgentOptions): Promise<Agen
 
       trace({
         type: "quote",
-        endpoint: url,
-        amount: `${formatAmount(BigInt(result.challenge.amount), result.challenge.asset)} HBAR`,
+        endpoint: purchaseUrl(plan.candidate, plan.units),
+        amount: `${formatAmount(result.challenge.amountBaseUnits, result.challenge.asset)} HBAR`,
         asset: result.challenge.asset,
         payTo: result.challenge.payTo,
       });
 
-      if (result.status !== 200) {
-        trace({ type: "error", message: `service returned ${result.status}` });
-        break;
-      }
-
-      // Charge the budget with what was actually settled, not what we estimated.
-      budget.reserve(BigInt(result.challenge.amount));
-
+      // The budget is already charged — `service.fetch()` reserves against the same `Budget`
+      // instance this loop was constructed with, so `budget.spent` below already reflects it.
       trace({
         type: "payment",
-        transactionId: result.transactionId,
-        amount: `${formatAmount(BigInt(result.challenge.amount), result.challenge.asset)} HBAR`,
-        hashscanUrl: result.hashscanUrl,
+        transactionId: result.payment.transactionId,
+        amount: `${formatAmount(result.payment.amountBaseUnits, result.challenge.asset)} HBAR`,
+        hashscanUrl: result.payment.hashscanUrl,
       });
 
-      received = JSON.parse(result.body);
+      received = result.data;
       trace({ type: "received", units: plan.units, bytes: result.body.length });
       emitExclusions(received, trace);
       purchases.push({
         label: plan.candidate.label,
         units: plan.units,
-        transactionId: result.transactionId,
+        transactionId: result.payment.transactionId,
       });
       bought.push(`${plan.units} ${plan.candidate.unit}(s) from ${plan.candidate.label}`);
       collected.push({ from: plan.candidate.label, data: received });
     } catch (err) {
+      if (err instanceof ServiceFailedAfterPaymentError) {
+        // Settled, then the service failed to serve. The budget already carries the charge if the
+        // server reported a transaction — see the SDK's own note on why that must not be silent.
+        trace({
+          type: "error",
+          message: `paid ${err.amount} (tx ${err.transactionId || "unreported"}), then the service returned ${err.status}`,
+        });
+        if (collected.length > 0) break;
+        return decline(`Purchase failed after payment: the service returned ${err.status}.`);
+      }
       if (err instanceof SettlementFailedError) {
         trace({
           type: "settlement:failed",
-          attempted: `${err.attempt.amount} of ${err.attempt.asset}`,
-          payTo: err.attempt.payTo,
-          attempts: err.attempts,
-          detail: "the facilitator did not confirm the payment — this is the settlement path upstream, not the agent",
+          attempted: `${err.attempted} of ${plan.candidate.asset}`,
+          payTo: err.payTo,
+          attempts: 1,
+          detail: err.detail + (err.paid === undefined ? " (whether the transfer landed is unknown)" : ""),
         });
         if (collected.length > 0) break;
         return decline(
-          `Could not complete payment: the settlement path did not confirm after ${err.attempts} attempt(s). ` +
+          `Could not complete payment: the settlement path did not confirm. ` +
             `This is upstream of the agent — nothing was charged.`,
         );
       }
-      if (err instanceof PriceRejectedError) {
+      if (err instanceof OverQuoteError) {
         // The quote moved above what the agent was willing to pay between deciding and paying.
-        trace({ type: "error", message: `refused at the till: ${err.message}` });
+        trace({ type: "error", message: `refused at the till: server quoted ${err.quoted}, above the stated ceiling of ${err.ceiling}` });
         if (collected.length > 0) break;
-        return decline(err.message);
+        return decline(`server quoted ${err.quoted}, above the stated ceiling of ${err.ceiling}`);
       }
       trace({ type: "error", message: (err as Error).message });
       if (collected.length > 0) break;
@@ -319,6 +335,13 @@ function emitExclusions(payload: unknown, trace: TraceSink): void {
   });
 }
 
+/** Same construction the SDK's `ServiceHandle` uses internally — kept here only for the trace. */
+function purchaseUrl(candidate: Plan["candidate"], units: number): string {
+  const url = new URL(candidate.endpoint);
+  url.searchParams.set("limit", String(units));
+  return url.toString();
+}
+
 function toPlanView(plan: Plan): PlanView {
   return {
     label: plan.candidate.label,
@@ -328,12 +351,6 @@ function toPlanView(plan: Plan): PlanView {
     unitPrice: `${plan.candidate.unitPrice} HBAR`,
     context: plan.candidate.context,
   };
-}
-
-function purchaseUrl(candidate: Candidate, units: number): string {
-  const url = new URL(candidate.endpoint);
-  url.searchParams.set("limit", String(units));
-  return url.toString();
 }
 
 export { Budget };
