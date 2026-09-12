@@ -25,10 +25,16 @@ const check = (name: string, ok: boolean, detail: string) => {
 const run = (cmd: string, args: string[], cwd?: string) =>
   execFileSync(cmd, args, { cwd, encoding: "utf8", stdio: "pipe", timeout: 300_000, env: process.env });
 
+const SDK_DIR = join("packages", "sdk");
 const scratch = mkdtempSync(join(tmpdir(), "tollgate-pack-"));
 try {
   run("pnpm", ["--filter", "@tollgatehq/sdk", "build"]);
-  run("pnpm", ["--filter", "@tollgatehq/sdk", "pack", "--pack-destination", scratch]);
+  // `npm pack`, not `pnpm pack`: this gate exists to test the exact tarball a publish produces, and
+  // the two disagree about whether `publishConfig` overrides the top-level `exports`/`main`/`types` —
+  // `pnpm pack` applies it, `npm publish` silently did not. That gap once let a package pass every
+  // check here and still be unimportable by a real `npm install`, discovered only by installing the
+  // actual published artifact. Packing with the actual publish tool is what makes this gate honest.
+  run("npm", ["pack", "--pack-destination", scratch], SDK_DIR);
   const tgz = readdirSync(scratch).find((f) => f.endsWith(".tgz"));
   if (!tgz) throw new Error("pack produced no tarball");
   const files = run("tar", ["tzf", join(scratch, tgz)]).split("\n").filter(Boolean).map((f) => f.replace(/^package\//, ""));
@@ -40,7 +46,11 @@ try {
   const pkg = JSON.parse(readFileSync(join(scratch, "package", "package.json"), "utf8"));
   const deps = Object.keys(pkg.dependencies ?? {});
   check("entry points at the build", JSON.stringify(pkg.exports ?? {}).includes("./dist/index.js"), JSON.stringify(pkg.exports?.["."] ?? {}));
-  check("no workspace: ranges", !JSON.stringify(pkg).includes("workspace:"), "");
+  // Scoped to `dependencies`, like the check below it — not the whole package.json. `devDependencies`
+  // still carry `workspace:*` (npm has no workspace protocol to rewrite it to, unlike pnpm), but a
+  // dependent never installs another package's devDependencies, in any package manager. A blob-wide
+  // string search would fail on that cosmetic leftover while testing nothing about installability.
+  check("no workspace: ranges in dependencies", !JSON.stringify(pkg.dependencies ?? {}).includes("workspace:"), "");
   check("no private @tollgate/* deps", !deps.some((d) => d.startsWith("@tollgate/")), deps.join(", "));
   check("no model client in deps", !deps.some((d) => d === "openai" || d.startsWith("@anthropic-ai/")), deps.join(", "));
 
