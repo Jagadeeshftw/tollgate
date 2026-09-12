@@ -12,7 +12,7 @@
  * their endpoint — and when they try to change `x402:settlement`, ENS refuses. That refusal is the
  * point of letting strangers list at all, so it is a button, not a paragraph.
  */
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   BaseError,
   ContractFunctionRevertedError,
@@ -48,6 +48,8 @@ const RESOLVER_ABI = parseAbi([
 
 type Step = "idle" | "connecting" | "listing" | "listed" | "working";
 type Outcome = { tone: "ok" | "refused" | "error"; title: string; detail: string; tx?: string };
+/** Which step an outcome belongs to. It renders inside that step, next to the button that caused it. */
+type Where = "wallet" | "listing" | "rule";
 
 declare global {
   interface Window {
@@ -99,7 +101,16 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
   const [wallet, setWallet] = useState<WalletClient | null>(null);
   const [account, setAccount] = useState<Address | null>(null);
   const [step, setStep] = useState<Step>("idle");
-  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [outcome, setOutcomeState] = useState<(Outcome & { where: Where }) | null>(null);
+  const outcomeRef = useRef<HTMLDivElement>(null);
+  const setOutcome = (o: Outcome | null, where: Where = "listing") =>
+    setOutcomeState(o ? { ...o, where } : null);
+
+  // The refusal is the moment this page exists for. It previously rendered at the foot of the page,
+  // below the button that caused it, so on a laptop screen a judge clicked and saw nothing happen.
+  useEffect(() => {
+    if (outcome) outcomeRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }, [outcome]);
   const [listed, setListed] = useState<{ label: string; node: `0x${string}` } | null>(null);
   const [form, setForm] = useState({
     label: "",
@@ -117,7 +128,7 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
 
   async function connect() {
     if (!window.ethereum) {
-      setOutcome({ tone: "error", title: "No wallet found", detail: "Install a browser wallet such as MetaMask, then reload." });
+      setOutcome({ tone: "error", title: "No wallet found", detail: "Install a browser wallet such as MetaMask, then reload." }, "wallet");
       return;
     }
     setStep("connecting");
@@ -129,7 +140,7 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
       setAccount(addr ?? null);
       setOutcome(null);
     } catch (err) {
-      setOutcome(explain(err));
+      setOutcome(explain(err), "wallet");
     } finally {
       setStep("idle");
     }
@@ -141,27 +152,33 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
     setOutcome(null);
     try {
       const expiry = BigInt(Math.floor(Date.now() / 1000) + Number(form.days) * 86_400);
+      const args = [
+        form.label,
+        account,
+        {
+          context: form.context,
+          endpoint: form.endpoint,
+          price: form.price,
+          unit: form.unit,
+          settlement: form.settlement,
+          network: "hedera:testnet",
+          asset: "0.0.0",
+          schema: form.schema,
+        },
+        expiry,
+      ] as const;
+      // Simulate against our own RPC first. A doomed listing is refused here with a decoded reason
+      // ("that name is taken") and never reaches the wallet — which matters because how a revert
+      // arrives from a wallet's own gas estimation varies by wallet, and one variant rendered only as
+      // "Transaction failed". The settlement refusal already worked this way; publishing did not.
+      await pub.simulateContract({ account, address: open, abi: OPEN_ABI, functionName: "list", args });
       const hash = await wallet.writeContract({
         account,
         chain: sepolia,
         address: open,
         abi: OPEN_ABI,
         functionName: "list",
-        args: [
-          form.label,
-          account,
-          {
-            context: form.context,
-            endpoint: form.endpoint,
-            price: form.price,
-            unit: form.unit,
-            settlement: form.settlement,
-            network: "hedera:testnet",
-            asset: "0.0.0",
-            schema: form.schema,
-          },
-          expiry,
-        ],
+        args,
       });
       await pub.waitForTransactionReceipt({ hash });
       const node = namehash(fqdn);
@@ -197,13 +214,35 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
       });
       await pub.waitForTransactionReceipt({ hash });
       const now = await pub.readContract({ address: deployment.resolver, abi: RESOLVER_ABI, functionName: "text", args: [listed.node, key] });
-      setOutcome({ tone: "ok", title: `${key} is now ${now}`, detail: "Allowed — this key was delegated to your wallet at listing.", tx: hash });
+      setOutcome({ tone: "ok", title: `${key} is now ${now}`, detail: "Allowed — this key was delegated to your wallet at listing.", tx: hash }, "rule");
     } catch (err) {
-      setOutcome(explain(err));
+      setOutcome(explain(err), "rule");
     } finally {
       setStep("listed");
     }
   }
+
+  const panel = (where: Where) =>
+    outcome && outcome.where === where ? (
+      <div
+        ref={outcomeRef}
+        role="status"
+        className={cn(
+          "mt-4 scroll-mt-24 rounded-xl border border-l-2 bg-raised p-5",
+          outcome.tone === "ok" && "border-rule border-l-good",
+          outcome.tone === "refused" && "border-rule border-l-judgment",
+          outcome.tone === "error" && "border-rule border-l-bad",
+        )}
+      >
+        <p className="text-[15px] font-semibold text-ink">{outcome.title}</p>
+        <p className="mt-1.5 max-w-[70ch] text-[13.5px] text-muted">{outcome.detail}</p>
+        {outcome.tx ? (
+          <a href={`https://sepolia.etherscan.io/tx/${outcome.tx}`} className="mt-2 block font-mono text-[12px] break-all text-dim underline underline-offset-2">
+            {outcome.tx}
+          </a>
+        ) : null}
+      </div>
+    ) : null;
 
   const field = (key: keyof typeof form, label: string, hint: string, mono = true) => (
     <label className="block">
@@ -238,6 +277,9 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
         </a>
         .
       </p>
+      <p className="mt-2 max-w-[64ch] font-mono text-[11.5px] text-dim">
+        Tested end to end on Sepolia in a desktop browser. Mobile wallet browsers are unverified.
+      </p>
 
       {!open ? (
         <div className="mt-8 rounded-xl border border-rule bg-surface p-5">
@@ -262,6 +304,7 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
                 </button>
               ) : null}
             </div>
+            {panel("wallet")}
           </section>
 
           <section className={cn("mt-4 rounded-xl border border-rule bg-surface p-5", !account && "opacity-50")}>
@@ -282,6 +325,7 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
             >
               {step === "listing" ? "Waiting for the transaction…" : "Publish listing"}
             </button>
+            {panel("listing")}
           </section>
 
           <section className={cn("mt-4 rounded-xl border border-rule bg-surface p-5", !listed && "opacity-50")}>
@@ -305,29 +349,11 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
                 Redirect my settlement to 0.0.999999
               </button>
             </div>
+            {panel("rule")}
           </section>
         </>
       )}
 
-      {outcome ? (
-        <div
-          role="status"
-          className={cn(
-            "mt-6 rounded-xl border border-l-2 bg-raised p-5",
-            outcome.tone === "ok" && "border-rule border-l-good",
-            outcome.tone === "refused" && "border-rule border-l-judgment",
-            outcome.tone === "error" && "border-rule border-l-bad",
-          )}
-        >
-          <p className="text-[15px] font-semibold text-ink">{outcome.title}</p>
-          <p className="mt-1.5 max-w-[70ch] text-[13.5px] text-muted">{outcome.detail}</p>
-          {outcome.tx ? (
-            <a href={`https://sepolia.etherscan.io/tx/${outcome.tx}`} className="mt-2 block font-mono text-[12px] text-dim underline underline-offset-2">
-              {outcome.tx}
-            </a>
-          ) : null}
-        </div>
-      ) : null}
     </main>
   );
 }
