@@ -31,6 +31,7 @@ export default function Understand() {
         nav={
           <>
             <NavTab href="/docs/understand" active>Understand</NavTab>
+            <NavTab href="/docs/integrate">Integrate</NavTab>
             <NavTab href="/docs/list-a-service">List a service</NavTab>
             <NavTab href="/docs/verify">Verify</NavTab>
           </>

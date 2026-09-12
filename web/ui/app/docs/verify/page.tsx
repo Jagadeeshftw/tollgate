@@ -48,6 +48,7 @@ export default function Verify() {
         nav={
           <>
             <NavTab href="/docs/understand">Understand</NavTab>
+            <NavTab href="/docs/integrate">Integrate</NavTab>
             <NavTab href="/docs/list-a-service">List a service</NavTab>
             <NavTab href="/docs/verify" active>Verify</NavTab>
           </>
