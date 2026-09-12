@@ -30,35 +30,86 @@ export default function Landing() {
             Agents buy data <span className="whitespace-nowrap text-judgment">by name</span>, and pay
             per call.
           </h1>
-          <p className="mx-auto mt-5 max-w-[58ch] text-[17px] text-muted">
+          {/*
+            The subject of every claim below is the agent, not the visitor. "No signup, no API key"
+            previously read as a promise about the person on this page; it is a statement about
+            what the provider does not require of an agent paying from its own account.
+          */}
+          <p className="mx-auto mt-5 max-w-[60ch] text-[17px] text-muted">
             An AI agent finds a data service by its ENS name, reads the price off the name itself,
-            and pays for it in HBAR — one request at a time. No signup, no API key, no subscription,
-            nobody signing anything.
+            and pays per call in HBAR from its own account. The provider issues it no API key, runs
+            no signup, and sells it no subscription — and no human signs anything in the loop.
           </p>
 
-          <form
-            className="mx-auto mt-8 flex max-w-[620px] flex-col gap-2.5 sm:flex-row"
-            onSubmit={(e) => {
-              e.preventDefault();
-              router.push(`/dashboard?q=${encodeURIComponent(question)}`);
-            }}
-          >
-            <input
-              value={question}
-              onChange={(e) => setQuestion(e.target.value)}
-              aria-label="Ask the agent a question"
-              className="min-w-0 flex-1 rounded-lg border border-rule-lit bg-surface px-4 py-3 text-[14.5px] text-ink placeholder:text-dim"
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-judgment px-5 py-3 text-[14px] font-semibold whitespace-nowrap text-ground transition-opacity hover:opacity-90"
+          {/*
+            Two real paths, because the product is the SDK and the registry — not the dashboard.
+            The dashboard is a demo playground funded by us; presenting it as the main event made
+            three hand-listed services read as a ceiling rather than an example.
+          */}
+          <div className="mx-auto mt-10 grid max-w-[980px] gap-4 text-left md:grid-cols-2">
+            <a
+              href="https://github.com/Jagadeeshftw/tollgate/tree/main/packages/sdk"
+              className="group rounded-xl border border-rule bg-surface p-6 transition-colors hover:border-rule-lit"
             >
-              Ask it →
-            </button>
-          </form>
+              <p className="font-mono text-[11px] tracking-[0.12em] text-judgment uppercase">Buy data</p>
+              <h2 className="mt-3 text-[20px] font-bold tracking-tight text-ink">Build an agent that pays per call</h2>
+              <p className="mt-2 text-[14.5px] text-muted">
+                <span className="font-mono text-ink">@tollgatehq/sdk</span> discovers services by ENS name, quotes
+                without spending, and pays over x402 under a hard budget. It does the arithmetic; your agent
+                makes the calls. It never touches a model.
+              </p>
+              <p className="mt-4 font-mono text-[12px] text-dim">
+                source on GitHub · npm release follows the discovery extraction
+                <span className="ml-1 text-muted transition-transform group-hover:translate-x-0.5">→</span>
+              </p>
+            </a>
+            <a
+              href="https://github.com/Jagadeeshftw/tollgate/blob/main/contracts/src/TollgateRegistrar.sol"
+              className="group rounded-xl border border-rule bg-surface p-6 transition-colors hover:border-rule-lit"
+            >
+              <p className="font-mono text-[11px] tracking-[0.12em] text-judgment uppercase">Sell data</p>
+              <h2 className="mt-3 text-[20px] font-bold tracking-tight text-ink">List a service under an ENS name</h2>
+              <p className="mt-2 text-[14.5px] text-muted">
+                Price, endpoint and settlement account live on your own subname. You can reprice and
+                repoint it; ENS stops you redirecting the money. Listing under{" "}
+                <span className="font-mono text-ink">tollgatehq.eth</span> is allowlisted today — the
+                registrar is open source, so you can run your own under a name you own.
+              </p>
+              <p className="mt-4 font-mono text-[12px] text-dim">
+                registrar source · the rules it enforces
+                <span className="ml-1 text-muted transition-transform group-hover:translate-x-0.5">→</span>
+              </p>
+            </a>
+          </div>
+
+          <div className="mx-auto mt-12 max-w-[620px]">
+            <p className="font-mono text-[11px] tracking-[0.12em] text-dim uppercase">
+              Or try it — a live demo paid from our testnet account
+            </p>
+            <form
+              className="mt-3 flex flex-col gap-2.5 sm:flex-row"
+              onSubmit={(e) => {
+                e.preventDefault();
+                router.push(`/dashboard?q=${encodeURIComponent(question)}`);
+              }}
+            >
+              <input
+                value={question}
+                onChange={(e) => setQuestion(e.target.value)}
+                aria-label="Ask the agent a question"
+                className="min-w-0 flex-1 rounded-lg border border-rule-lit bg-surface px-4 py-3 text-[14.5px] text-ink placeholder:text-dim"
+              />
+              <button
+                type="submit"
+                className="rounded-lg border border-rule-lit px-5 py-3 text-[14px] font-semibold whitespace-nowrap text-ink transition-colors hover:border-judgment"
+              >
+                Ask it →
+              </button>
+            </form>
+          </div>
 
           <div className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[11.5px] text-dim">
-            <span>3 services live on Sepolia</span>
+            <span>3 demo services, listed by us</span>
             <span>·</span>
             <span>settled on Hedera testnet</span>
             <span>·</span>
