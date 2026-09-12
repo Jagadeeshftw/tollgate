@@ -68,6 +68,7 @@ const PLAN = [
   [29, [
     "^substreams/", "^packages/sdk/", "^packages/discovery/", "^scripts/gate-sdk\\.ts$",
     "^web/ui/app/(operator|docs)/", "^web/ui/components/(operator|docs)/", "^web/ui/lib/deployment\\.ts$",
+    "^web/ui/lib/records\\.ts$", "^LICENSE$",
   ]],
 ];
 

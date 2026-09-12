@@ -17,7 +17,7 @@ const HASHSCAN = "https://hashscan.io/testnet/";
 function Row({ label, value, href, note }: { label: string; value: string; href?: string; note?: string }) {
   return (
     <tr className="border-b border-rule align-top">
-      <td className="py-2.5 pr-4 text-[13.5px] text-muted">{label}</td>
+      <td className="w-24 py-2.5 pr-4 text-[13.5px] text-muted sm:w-44">{label}</td>
       <td className="py-2.5 pr-4 font-mono text-[12.5px] break-all text-ink">
         {href ? <a href={href} className="underline decoration-rule-lit underline-offset-2 hover:text-judgment">{value}</a> : value}
       </td>
@@ -66,7 +66,7 @@ export default function Verify() {
         </p>
 
         <Section title="On Sepolia (ENS)">
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
             <tbody>
               <Row label="Parent name" value={addr("parentName")} />
               <Row label="Subname registry" value={addr("registry")} href={ETHERSCAN + addr("registry")} />
@@ -83,7 +83,7 @@ export default function Verify() {
         </Section>
 
         <Section title="On Hedera testnet">
-          <table className="w-full border-collapse">
+          <table className="w-full table-fixed border-collapse">
             <tbody>
               <Row label="Network" value={hed.network} />
               <Row label="Service settlement account" value={hed.settlementAccount} href={`${HASHSCAN}account/${hed.settlementAccount}`} note="receives x402 payments" />
