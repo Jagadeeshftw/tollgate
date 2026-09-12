@@ -99,7 +99,7 @@ export default function Dashboard() {
         Whose money moves. A judge should never have to infer that a demo run spends our HBAR, or
         that the cap exists because of it.
       */}
-      <p className="border-b border-rule bg-surface px-6 pb-3 font-mono text-[11.5px] text-dim">
+      <p className="border-b border-rule bg-surface px-6 pt-2.5 pb-2.5 font-mono text-[11.5px] text-dim">
         Demo runs are paid from our Hedera testnet account and capped per day. To pay from your own
         account, use{" "}
         <a
