@@ -228,7 +228,9 @@ export function OperatorConsole({ deployment }: { deployment: OperatorDeployment
         ref={outcomeRef}
         role="status"
         className={cn(
-          "mt-4 scroll-mt-24 rounded-xl border border-l-2 bg-raised p-5",
+          // scroll-mb: `block: "nearest"` parks a panel below the fold flush against the viewport's
+          // bottom edge, so a panel a few lines taller — the refusal, with its explanation — clipped.
+          "mt-4 scroll-mt-24 scroll-mb-12 rounded-xl border border-l-2 bg-raised p-5",
           outcome.tone === "ok" && "border-rule border-l-good",
           outcome.tone === "refused" && "border-rule border-l-judgment",
           outcome.tone === "error" && "border-rule border-l-bad",
