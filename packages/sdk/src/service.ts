@@ -32,7 +32,21 @@ export interface Quote {
 
 export interface PaidResult<T = unknown> {
   readonly data: T;
+  /** The raw response body, before the best-effort JSON.parse that produced `data`. A caller that
+   *  needs the exact bytes on the wire — to log a transfer size, or because parsing lost something
+   *  `data` cannot represent — has it without re-serializing `data` and hoping that matches. */
+  readonly body: string;
   readonly units: number;
+  /** The server's HTTP status for the resource response, after settlement. Always 2xx here — a
+   *  non-2xx status throws {@link ServiceFailedAfterPaymentError} instead of returning. Carried on
+   *  the result anyway so a caller need not special-case "200" versus some other success code. */
+  readonly status: number;
+  /** The 402 challenge the server actually issued for this call — its own quote, not the ENS record. */
+  readonly challenge: {
+    readonly amountBaseUnits: bigint;
+    readonly asset: string;
+    readonly payTo: string;
+  };
   readonly payment: {
     readonly amountBaseUnits: bigint;
     readonly transactionId: string;
@@ -48,6 +62,14 @@ export class ServiceHandle {
     readonly candidate: Candidate,
     private readonly budget: Budget,
     private readonly payer?: HederaPayer,
+    /**
+     * How a purchase is executed. Defaults to a real x402 payment.
+     *
+     * Injectable so a caller can assert on the guard rails — the budget check, the ceiling, the
+     * decline paths — without spending real money on every assertion. The default is the real
+     * thing; there is no "simulate" mode that could be left on by accident.
+     */
+    private readonly purchase: typeof payAndFetch = payAndFetch,
   ) {}
 
   get label(): string {
@@ -153,7 +175,7 @@ export class ServiceHandle {
 
     let response;
     try {
-      response = await payAndFetch(
+      response = await this.purchase(
         this.url(limit),
         { accountId: this.payer.accountId, privateKey: this.payer.privateKey, ...(this.payer.network ? { network: this.payer.network } : {}) },
         {
@@ -198,7 +220,14 @@ export class ServiceHandle {
 
     return {
       data,
+      body: response.body,
       units: limit,
+      status: response.status,
+      challenge: {
+        amountBaseUnits: paid,
+        asset: response.challenge.asset,
+        payTo: response.challenge.payTo,
+      },
       payment: {
         amountBaseUnits: paid,
         transactionId: response.transactionId,
