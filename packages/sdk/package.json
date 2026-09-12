@@ -10,8 +10,9 @@
     ".": "./src/index.ts"
   },
   "files": [
-    "src",
-    "README.md"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "keywords": [
     "x402",
@@ -22,15 +23,40 @@
   ],
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "build": "tsup",
+    "prepublishOnly": "pnpm run build && pnpm run test"
   },
   "dependencies": {
-    "@tollgate/discovery": "workspace:*",
-    "@tollgate/x402-client": "workspace:*"
+    "@x402/core": "2.24.0",
+    "@x402/hedera": "2.24.0",
+    "viem": "^2.56.1"
   },
   "devDependencies": {
+    "@tollgate/discovery": "workspace:*",
+    "@tollgate/x402-client": "workspace:*",
     "@types/node": "^24.10.0",
+    "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+      ".": {
+        "types": "./dist/index.d.ts",
+        "import": "./dist/index.js"
+      }
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Jagadeeshftw/tollgate.git",
+    "directory": "packages/sdk"
   }
 }
