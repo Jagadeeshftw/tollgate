@@ -1,20 +1,9 @@
 import type { ReactNode } from "react";
 
-import { AppBar, NavTab } from "@/components/AppBar";
 import { Sample } from "@/components/docs/Sample";
 import { readDeployment } from "@/lib/deployment";
 
 export const metadata = { title: "List a service — Tollgate docs" };
-
-const SECTIONS = [
-  ["what", "What a listing is"],
-  ["paths", "Two ways to list"],
-  ["rules", "What is enforced"],
-  ["qualifier", "What it does not protect against"],
-  ["endpoint", "What your endpoint must do"],
-  ["own", "Running your own registrar"],
-  ["lifecycle", "Expiry and revocation"],
-] as const;
 
 function H2({ id, children }: { id: string; children: ReactNode }) {
   return (
@@ -35,33 +24,7 @@ export default function ListAService() {
   const open = d.openRegistrar;
 
   return (
-    <div className="min-h-dvh bg-ground">
-      <AppBar
-        nav={
-          <>
-            <NavTab href="/docs/understand">Understand</NavTab>
-            <NavTab href="/docs/integrate">Integrate</NavTab>
-            <NavTab href="/docs/list-a-service" active>List a service</NavTab>
-            <NavTab href="/docs/verify">Verify</NavTab>
-          </>
-        }
-        status={<span>operator guide</span>}
-      />
-      <div className="mx-auto grid max-w-[1180px] gap-10 px-6 pt-10 pb-24 lg:grid-cols-[210px_minmax(0,1fr)]">
-        <nav aria-label="On this page" className="hidden lg:block">
-          <div className="sticky top-8">
-            <p className="font-mono text-[10.5px] tracking-[0.11em] text-dim uppercase">On this page</p>
-            <ul className="mt-3 space-y-2">
-              {SECTIONS.map(([id, label]) => (
-                <li key={id}>
-                  <a href={`#${id}`} className="text-[13.5px] text-muted hover:text-ink">{label}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-
-        <article className="min-w-0">
+    <>
           <p className="font-mono text-[11px] tracking-[0.13em] text-judgment uppercase">Sell data</p>
           <h1 className="mt-3 text-[clamp(28px,3.6vw,38px)] font-bold tracking-tight text-ink">List a service</h1>
           <P>
@@ -226,8 +189,6 @@ export default function ListAService() {
             the records as well as burning the name, so an agent that cached the node cannot keep paying a dead endpoint. On
             the curated registrar, only allowlisted listers may revoke.
           </P>
-        </article>
-      </div>
-    </div>
+    </>
   );
 }

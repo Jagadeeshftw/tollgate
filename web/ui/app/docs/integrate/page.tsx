@@ -1,20 +1,11 @@
 import type { ReactNode } from "react";
 
-import { AppBar, NavTab } from "@/components/AppBar";
 import { Sample } from "@/components/docs/Sample";
 
 export const metadata = { title: "Integrate — Tollgate docs" };
 
 const REPO = "https://github.com/Jagadeeshftw/tollgate";
 const SDK = `${REPO}/tree/main/packages/sdk`;
-
-const SECTIONS = [
-  ["install", "Install"],
-  ["quickstart", "Quickstart"],
-  ["surface", "The whole API"],
-  ["errors", "Errors are typed"],
-  ["seams", "Testing against it"],
-] as const;
 
 function H2({ id, children }: { id: string; children: ReactNode }) {
   return (
@@ -39,33 +30,7 @@ function Pre({ children }: { children: string }) {
 
 export default function Integrate() {
   return (
-    <div className="min-h-dvh bg-ground">
-      <AppBar
-        nav={
-          <>
-            <NavTab href="/docs/understand">Understand</NavTab>
-            <NavTab href="/docs/integrate" active>Integrate</NavTab>
-            <NavTab href="/docs/list-a-service">List a service</NavTab>
-            <NavTab href="/docs/verify">Verify</NavTab>
-          </>
-        }
-        status={<span>@tollgatehq/sdk</span>}
-      />
-      <div className="mx-auto grid max-w-[1180px] gap-10 px-6 pt-10 pb-24 lg:grid-cols-[210px_minmax(0,1fr)]">
-        <nav aria-label="On this page" className="hidden lg:block">
-          <div className="sticky top-8">
-            <p className="font-mono text-[10.5px] tracking-[0.11em] text-dim uppercase">On this page</p>
-            <ul className="mt-3 space-y-2">
-              {SECTIONS.map(([id, label]) => (
-                <li key={id}>
-                  <a href={`#${id}`} className="text-[13.5px] text-muted hover:text-ink">{label}</a>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </nav>
-
-        <article className="min-w-0">
+    <>
           <p className="font-mono text-[11px] tracking-[0.13em] text-judgment uppercase">Build with it</p>
           <h1 className="mt-3 text-[clamp(28px,3.6vw,38px)] font-bold tracking-tight text-ink">Integrate</h1>
           <P>
@@ -191,8 +156,6 @@ res.payment.hashscanUrl;     // proof the transfer happened`}</Pre>
             — a budget built against a different copy of the underlying arithmetic still works, which matters the
             moment your bundler gives you one.
           </P>
-        </article>
-      </div>
-    </div>
+    </>
   );
 }

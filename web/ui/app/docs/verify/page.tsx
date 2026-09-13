@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 
-import { AppBar, NavTab } from "@/components/AppBar";
 import { Sample } from "@/components/docs/Sample";
 import { readEns, readHedera, recordKeys } from "@/lib/records";
 
@@ -26,9 +25,9 @@ function Row({ label, value, href, note }: { label: string; value: string; href?
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section className="mt-12">
+    <section id={id} className="mt-12 scroll-mt-24">
       <h2 className="text-[20px] font-bold tracking-tight text-ink">{title}</h2>
       <div className="mt-4 overflow-x-auto">{children}</div>
     </section>
@@ -43,84 +42,71 @@ export default function Verify() {
   const services = (ens.services as string[] | undefined) ?? [];
 
   return (
-    <div className="min-h-dvh bg-ground">
-      <AppBar
-        nav={
-          <>
-            <NavTab href="/docs/understand">Understand</NavTab>
-            <NavTab href="/docs/integrate">Integrate</NavTab>
-            <NavTab href="/docs/list-a-service">List a service</NavTab>
-            <NavTab href="/docs/verify" active>Verify</NavTab>
-          </>
-        }
-        status={<span>generated from the deployment record</span>}
-      />
-      <main className="mx-auto max-w-[1060px] px-6 pt-10 pb-24">
-        <p className="font-mono text-[11px] tracking-[0.13em] text-judgment uppercase">Verify</p>
-        <h1 className="mt-3 text-[clamp(28px,3.6vw,38px)] font-bold tracking-tight text-ink">Check it without trusting us</h1>
-        <p className="mt-3 max-w-[66ch] text-[15px] text-muted">
-          Every address, account and key below is read at build time from{" "}
-          <code className="font-mono text-ink">deployments/</code> and{" "}
-          <code className="font-mono text-ink">TollgateRecordsLib.sol</code> — nothing on this page is typed by hand.
-          Each links to a public explorer, and the commands at the end resolve a listing through ENS&apos;s own
-          UniversalResolver with no code from this repository involved.
-        </p>
+    <>
+      <p className="font-mono text-[11px] tracking-[0.13em] text-judgment uppercase">Verify</p>
+      <h1 className="mt-3 text-[clamp(28px,3.6vw,38px)] font-bold tracking-tight text-ink">Check it without trusting us</h1>
+      <p className="mt-3 max-w-[66ch] text-[15px] text-muted">
+        Every address, account and key below is read at build time from{" "}
+        <code className="font-mono text-ink">deployments/</code> and{" "}
+        <code className="font-mono text-ink">TollgateRecordsLib.sol</code> — nothing on this page is typed by hand.
+        Each links to a public explorer, and the commands at the end resolve a listing through ENS&apos;s own
+        UniversalResolver with no code from this repository involved.
+      </p>
 
-        <Section title="On Sepolia (ENS)">
-          <table className="w-full table-fixed border-collapse">
-            <tbody>
-              <Row label="Parent name" value={addr("parentName")} />
-              <Row label="Subname registry" value={addr("registry")} href={ETHERSCAN + addr("registry")} />
-              <Row label="Resolver" value={addr("resolver")} href={ETHERSCAN + addr("resolver")} note="holds every listing's records" />
-              <Row label="Curated registrar" value={addr("registrar")} href={ETHERSCAN + addr("registrar")} note="allowlisted listers only" />
-              {ens.openRegistrar ? (
-                <Row label="Open registrar" value={addr("openRegistrar")} href={ETHERSCAN + addr("openRegistrar")} note="anyone may list for themselves" />
-              ) : null}
-              <Row label="Deployer" value={addr("deployer")} href={ETHERSCAN + addr("deployer")} note="retains top-level roles — see List a service" />
-              <Row label="Deploy block" value={String(ens.deployBlock ?? "")} note="lower bound for event scans" />
-              <Row label="Demo listings" value={services.map((s) => `${s}.${addr("parentName")}`).join("  ")} />
-            </tbody>
-          </table>
-        </Section>
+      <Section id="ens" title="On Sepolia (ENS)">
+        <table className="w-full table-fixed border-collapse">
+          <tbody>
+            <Row label="Parent name" value={addr("parentName")} />
+            <Row label="Subname registry" value={addr("registry")} href={ETHERSCAN + addr("registry")} />
+            <Row label="Resolver" value={addr("resolver")} href={ETHERSCAN + addr("resolver")} note="holds every listing's records" />
+            <Row label="Curated registrar" value={addr("registrar")} href={ETHERSCAN + addr("registrar")} note="allowlisted listers only" />
+            {ens.openRegistrar ? (
+              <Row label="Open registrar" value={addr("openRegistrar")} href={ETHERSCAN + addr("openRegistrar")} note="anyone may list for themselves" />
+            ) : null}
+            <Row label="Deployer" value={addr("deployer")} href={ETHERSCAN + addr("deployer")} note="retains top-level roles — see List a service" />
+            <Row label="Deploy block" value={String(ens.deployBlock ?? "")} note="lower bound for event scans" />
+            <Row label="Demo listings" value={services.map((s) => `${s}.${addr("parentName")}`).join("  ")} />
+          </tbody>
+        </table>
+      </Section>
 
-        <Section title="On Hedera testnet">
-          <table className="w-full table-fixed border-collapse">
-            <tbody>
-              <Row label="Network" value={hed.network} />
-              <Row label="Service settlement account" value={hed.settlementAccount} href={`${HASHSCAN}account/${hed.settlementAccount}`} note="receives x402 payments" />
-              {hed.auditTopic ? (
-                <Row label="HCS audit topic" value={hed.auditTopic} href={`${HASHSCAN}topic/${hed.auditTopic}`} note="every settled payment is logged here" />
-              ) : null}
-              {hed.hosted?.operatorAccount ? (
-                <Row label="Hosted demo payer" value={hed.hosted.operatorAccount} href={`${HASHSCAN}account/${hed.hosted.operatorAccount}`} note="funds the dashboard's demo runs" />
-              ) : null}
-            </tbody>
-          </table>
-        </Section>
+      <Section id="hedera" title="On Hedera testnet">
+        <table className="w-full table-fixed border-collapse">
+          <tbody>
+            <Row label="Network" value={hed.network} />
+            <Row label="Service settlement account" value={hed.settlementAccount} href={`${HASHSCAN}account/${hed.settlementAccount}`} note="receives x402 payments" />
+            {hed.auditTopic ? (
+              <Row label="HCS audit topic" value={hed.auditTopic} href={`${HASHSCAN}topic/${hed.auditTopic}`} note="every settled payment is logged here" />
+            ) : null}
+            {hed.hosted?.operatorAccount ? (
+              <Row label="Hosted demo payer" value={hed.hosted.operatorAccount} href={`${HASHSCAN}account/${hed.hosted.operatorAccount}`} note="funds the dashboard's demo runs" />
+            ) : null}
+          </tbody>
+        </table>
+      </Section>
 
-        <Section title="Record keys a listing carries">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="border-b border-rule text-left font-mono text-[10.5px] tracking-[0.08em] text-dim uppercase">
-                <th className="py-2 pr-4">Key</th><th className="py-2">Constant in TollgateRecordsLib.sol</th>
+      <Section id="keys" title="Record keys a listing carries">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b border-rule text-left font-mono text-[10.5px] tracking-[0.08em] text-dim uppercase">
+              <th className="py-2 pr-4">Key</th><th className="py-2">Constant in TollgateRecordsLib.sol</th>
+            </tr>
+          </thead>
+          <tbody>
+            {keys.map((k) => (
+              <tr key={k.constant} className="border-b border-rule">
+                <td className="py-2 pr-4 font-mono text-[13px] text-ink">{k.key}</td>
+                <td className="py-2 font-mono text-[12.5px] text-dim">{k.constant}</td>
               </tr>
-            </thead>
-            <tbody>
-              {keys.map((k) => (
-                <tr key={k.constant} className="border-b border-rule">
-                  <td className="py-2 pr-4 font-mono text-[13px] text-ink">{k.key}</td>
-                  <td className="py-2 font-mono text-[12.5px] text-dim">{k.constant}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Section>
+            ))}
+          </tbody>
+        </table>
+      </Section>
 
-        <Section title="Resolve a listing yourself">
-          <Sample path="operator/resolve-listing.sh" title="A listing's price, through the public ENS resolver" />
-          <Sample path="operator/check-delegation.sh" title="Who may write which record, asked of the resolver" />
-        </Section>
-      </main>
-    </div>
+      <Section id="resolve" title="Resolve a listing yourself">
+        <Sample path="operator/resolve-listing.sh" title="A listing's price, through the public ENS resolver" />
+        <Sample path="operator/check-delegation.sh" title="Who may write which record, asked of the resolver" />
+      </Section>
+    </>
   );
 }
