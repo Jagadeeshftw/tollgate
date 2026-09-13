@@ -80,7 +80,7 @@ export default function Dashboard() {
           <>
             <NavTab href="/dashboard" active>Run</NavTab>
             <NavTab href="/#how">How it works</NavTab>
-            <NavTab href="/#verify">Verify</NavTab>
+            <NavTab href="/docs/verify">Verify</NavTab>
           </>
         }
         status={
