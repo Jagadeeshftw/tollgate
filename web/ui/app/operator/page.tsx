@@ -2,7 +2,7 @@ import { AppBar, NavTab } from "@/components/AppBar";
 import { OperatorConsole } from "@/components/operator/OperatorConsole";
 import { readDeployment } from "@/lib/deployment";
 
-export const metadata = { title: "List a service — Tollgate" };
+export const metadata = { title: "Operator console" };
 
 export default function OperatorPage() {
   const deployment = readDeployment();

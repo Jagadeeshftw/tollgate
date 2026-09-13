@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Sample } from "@/components/docs/Sample";
 import { readEns, readHedera, recordKeys } from "@/lib/records";
 
-export const metadata = { title: "Verify — Tollgate docs" };
+export const metadata = { title: "Verify" };
 
 /**
  * Everything on this page is read at build time from the committed deployment records and the

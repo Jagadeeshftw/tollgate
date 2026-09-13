@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export const metadata = { title: "Understand — Tollgate docs" };
+export const metadata = { title: "Understand" };
 
 /**
  * Deliberately short. The landing page and the README already explain the system; restating them here

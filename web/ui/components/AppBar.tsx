@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -25,7 +26,8 @@ export function AppBar({
         className,
       )}
     >
-      <Link href="/" className="text-[15px] font-extrabold tracking-tight text-ink">
+      <Link href="/" className="flex items-center gap-2 text-[15px] font-extrabold tracking-tight text-ink">
+        <Image src="/logo-mark-light.png" alt="" width={18} height={16} priority className="shrink-0" />
         Tollgate
       </Link>
       {/* min-w-0 lets this grid item shrink below its content's width; without it, four-or-more tabs

@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { Sample } from "@/components/docs/Sample";
 
-export const metadata = { title: "Integrate — Tollgate docs" };
+export const metadata = { title: "Integrate" };
 
 const REPO = "https://github.com/Jagadeeshftw/tollgate";
 const SDK = `${REPO}/tree/main/packages/sdk`;

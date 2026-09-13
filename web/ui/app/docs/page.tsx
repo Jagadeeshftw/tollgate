@@ -1,4 +1,4 @@
-export const metadata = { title: "Docs — Tollgate" };
+export const metadata = { title: "Docs" };
 
 const SECTIONS = [
   ["/docs/understand", "Understand", "How it works, in five ideas — each linking to the one place it is explained in full."],

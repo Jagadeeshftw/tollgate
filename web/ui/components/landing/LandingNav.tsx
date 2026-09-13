@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "motion/react";
@@ -35,7 +36,8 @@ export function LandingNav() {
       className="sticky top-0 z-50 border-b backdrop-blur-md"
     >
       <div className="mx-auto grid max-w-[1240px] grid-cols-[auto_1fr_auto] items-center gap-8 px-6 py-3.5">
-        <Link href="/" className="text-[17px] font-extrabold tracking-tight text-ink">
+        <Link href="/" className="flex items-center gap-2 text-[17px] font-extrabold tracking-tight text-ink">
+          <Image src="/logo-mark-light.png" alt="" width={20} height={18} priority className="shrink-0" />
           Tollgate
         </Link>
         <nav className="hidden items-center gap-6 md:flex">

@@ -3,7 +3,7 @@ import type { ReactNode } from "react";
 import { Sample } from "@/components/docs/Sample";
 import { readDeployment } from "@/lib/deployment";
 
-export const metadata = { title: "List a service — Tollgate docs" };
+export const metadata = { title: "List a service" };
 
 function H2({ id, children }: { id: string; children: ReactNode }) {
   return (
