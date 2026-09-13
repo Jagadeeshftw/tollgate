@@ -1,4 +1,10 @@
-import { MAX_TVL_TO_VOLUME_RATIO, poolsAcrossProtocols, poolsFor, type PoolQueryResult } from "./gateway.js";
+import {
+  MAX_TVL_TO_VOLUME_RATIO,
+  poolsAcrossProtocols,
+  poolsFor,
+  protocolTvl,
+  type PoolQueryResult,
+} from "./gateway.js";
 import { SCHEMA_DRIFT } from "./subgraphs.js";
 
 /** Structurally matches the service's `DataSource`, without importing it (avoids a cycle). */
@@ -39,9 +45,12 @@ export class GraphDataSource {
     "uniswap-pools": "uniswap-v3",
     "curve-pools": "curve",
     "sushi-pools": "sushiswap",
+    "uniswap-tvl": "uniswap-v3",
   };
 
   async fetch(request: DataRequest): Promise<unknown> {
+    if (request.label === "uniswap-tvl") return this.fetchProtocolTvl(request);
+
     const result: PoolQueryResult =
       request.label === "dex-pools"
         ? await poolsAcrossProtocols(request.units)
@@ -66,6 +75,31 @@ export class GraphDataSource {
           `its figures, so nothing is hidden. No value is ever rewritten.`,
         excluded: result.excluded,
         sources: result.sources,
+      },
+    };
+  }
+
+  /**
+   * `uniswap-tvl`: one flat-fee answer, not a ranking. Deliberately does not vary with
+   * `request.units` — there is one number to sell, and requesting "10" of it would not make it
+   * more informative. See the metering note in `metering.ts` and `spec/PROMPTS.md` for what that
+   * means for a caller who asks for more than one: the price still scales with `units` even though
+   * the answer never does, because the generic metering path has no notion of a flat-fee listing.
+   */
+  private async fetchProtocolTvl(request: DataRequest): Promise<unknown> {
+    const key = GraphDataSource.BY_LABEL[request.label] ?? "uniswap-v3";
+    const result = await protocolTvl(key);
+    return {
+      protocol: result.protocol,
+      totalValueLockedUSD: result.totalValueLockedUSD,
+      provenance: {
+        note: "live from The Graph's decentralized network via Messari standardized subgraphs",
+        scope:
+          "The protocol's own aggregate figure — the dex-amm schema's protocol-level entity, not " +
+          "a sum computed here over individual pools. One number, not a ranking.",
+        schemaCaveat: SCHEMA_DRIFT,
+        block: result.block,
+        source: { protocol: result.protocol },
       },
     };
   }

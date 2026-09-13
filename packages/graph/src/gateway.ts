@@ -137,14 +137,19 @@ interface RawResponse {
 }
 
 /** The gateway is occasionally slow; one retry costs a few seconds and avoids a paid 500. */
-async function post(subgraphId: string, first: number, apiKey: string): Promise<Response> {
+async function post(
+  subgraphId: string,
+  query: string,
+  variables: Record<string, unknown>,
+  apiKey: string,
+): Promise<Response> {
   let last: unknown;
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
       return await fetch(`${GATEWAY}/subgraphs/id/${subgraphId}`, {
         method: "POST",
         headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ query: POOLS_QUERY, variables: { first } }),
+        body: JSON.stringify({ query, variables }),
         // Measured: the gateway intermittently exceeds 30s under load, which surfaced as a 500 on
         // a request the caller had already paid for. Generous, with one retry, is the cheap fix.
         signal: AbortSignal.timeout(45_000),
@@ -161,7 +166,7 @@ async function queryOne(
   first: number,
   apiKey: string,
 ): Promise<{ pools: Pool[]; excluded: ExcludedPool[]; block: number }> {
-  const res = await post(subgraph.subgraphId, first, apiKey);
+  const res = await post(subgraph.subgraphId, POOLS_QUERY, { first }, apiKey);
 
   const body = (await res.json()) as RawResponse;
   if (body.errors?.length) throw new GraphQueryError(subgraph.key, body.errors[0]!.message);
@@ -285,5 +290,46 @@ export async function poolsAcrossProtocols(limit: number): Promise<PoolQueryResu
       : {}),
     excluded,
     sources,
+  };
+}
+
+/** One number: the protocol's own aggregate, not a ranking over its pools. */
+export interface ProtocolTvlResult {
+  readonly protocol: string;
+  readonly totalValueLockedUSD: string;
+  readonly block: number;
+}
+
+/**
+ * `dexAmmProtocols` is the schema's protocol-level root entity — the same entity the standardized
+ * subgraphs were originally qualified against (see `subgraphs.ts`), queried here for its own
+ * `totalValueLockedUSD` rather than for the `liquidityPools` beneath it. One flat answer, not a
+ * ranking: there is no `first`/`limit` in this query because there is nothing to page through.
+ */
+const PROTOCOL_TVL_QUERY = `
+  query ProtocolTvl {
+    _meta { block { number } }
+    dexAmmProtocols { name totalValueLockedUSD }
+  }
+`;
+
+export async function protocolTvl(key: string): Promise<ProtocolTvlResult> {
+  const subgraph = subgraphFor(key);
+  if (!subgraph) throw new GraphQueryError(key, "no standardized subgraph configured");
+
+  const res = await post(subgraph.subgraphId, PROTOCOL_TVL_QUERY, {}, apiKey());
+  const body = (await res.json()) as {
+    data?: { _meta?: { block?: { number?: number } }; dexAmmProtocols?: { name: string; totalValueLockedUSD: string }[] };
+    errors?: { message: string }[];
+  };
+  if (body.errors?.length) throw new GraphQueryError(subgraph.key, body.errors[0]!.message);
+
+  const protocol = body.data?.dexAmmProtocols?.[0];
+  if (!protocol) throw new GraphQueryError(subgraph.key, "no protocol entity in response");
+
+  return {
+    protocol: protocol.name,
+    totalValueLockedUSD: protocol.totalValueLockedUSD,
+    block: body.data?._meta?.block?.number ?? 0,
   };
 }
