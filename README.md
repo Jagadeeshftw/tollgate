@@ -75,7 +75,7 @@ actually backs. That is the load-bearing path today, not a fallback:
   that serves state while erroring on logs should not take the catalogue down with it.
 - When the log scan comes back short, the dashboard says so — a panel in the service rail reads
   `INCOMPLETE EVENT LOG` and names what it recovered. **You will probably see it.** It is the system
-  reporting its dependency failing, not a fault in the catalogue; the three services are correct
+  reporting its dependency failing, not a fault in the catalogue; the four services are correct
   either way.
 
 Two gates hold this honest, and both hit live systems:

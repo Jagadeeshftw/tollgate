@@ -120,7 +120,7 @@ export default function ListAService() {
                 Open listing is <strong className="text-ink">not live on Sepolia yet</strong>. Until it is, listing under
                 this name goes through the curated registrar, which only allowlisted listers may call — a stranger's call
                 reverts with <C>NotLister</C>. There is no request or approval flow; being allowlisted is a transaction by
-                us. Our own scripts (<C>pnpm ens:list</C>) are how the three demo services were listed, and they need that
+                us. Our own scripts (<C>pnpm ens:list</C>) are how the four demo services were listed, and they need that
                 role — they are not a third-party path.
               </>
             )}
@@ -181,7 +181,7 @@ export default function ListAService() {
             because renouncing is one-way and we may still need to correct a listing before submission.
           </P>
           <P>
-            The three demo listings make this visible: they are owned by the deployer itself, so the sample below shows the
+            The four demo listings make this visible: they are owned by the deployer itself, so the sample below shows the
             owner able to write every key — settlement included — and a stranger refused on all of them. For an ordinary
             operator, the rule in the table above applies.
           </P>

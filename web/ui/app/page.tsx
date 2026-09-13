@@ -109,7 +109,7 @@ export default function Landing() {
           </div>
 
           <div className="mt-6 flex flex-wrap justify-center gap-x-5 gap-y-2 font-mono text-[11.5px] text-dim">
-            <span>3 demo services, listed by us</span>
+            <span>4 demo services, listed by us</span>
             <span>·</span>
             <span>settled on Hedera testnet</span>
             <span>·</span>
