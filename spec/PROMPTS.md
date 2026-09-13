@@ -471,3 +471,51 @@ visibility check — canaried against the old layout first — asserts the outco
 **Verify the mechanism before an irreversible instruction, again.** Asked to push a README fix to
 `main`, the first check was whether either Railway service is connected to the repository — if it
 were, the push would itself have been a deploy. Neither is; both were deployed with `railway up`.
+
+## 13 September 2026 — a rotation that had not reached everywhere, and the one before it
+
+**Prompt:** list a differently-shaped, flat-fee service; propose the subject first, then build it.
+
+**A credential was printed again, checking on the new listing.** `railway variable list -s
+tollgate-service --kv --json` — `--kv`'s own description says "prints raw values", and it did:
+`GRAPH_API_KEY` and `HEDERA_OPERATOR_KEY` in plaintext. Reported immediately, per the standing rule
+from 3 September: any command that can print a credential is redacted or silenced before it runs,
+not judged case by case. This one was misjudged — `--json` was expected to imply structured,
+name-only output; the tool's own help text said otherwise.
+
+**It was worse than a fresh exposure.** The exposed `HEDERA_OPERATOR_ID` was already marked
+`retired` in `deployments/hedera-testnet.json` — "must not be funded or used again" — from the 3
+September incident. `tollgate-service`'s HCS audit-log submissions had been running on a
+compromised, supposedly-dead account the whole time. That earlier rotation updated `tollgate-web`
+and `.env` and never reached this service, and nothing surfaced the disagreement between the record
+and reality for ten days.
+
+**The pattern, not the instance, is what needs fixing:**
+
+> **A rotation is not complete until every location has been enumerated and each verified against
+> the thing that actually holds the credential.** Not the locations remembered — the locations
+> listed. `.env`, every Railway service, every script or gate that reads the credential. A rotation
+> that updates the places that come to mind is a rotation that leaves the rest exactly as
+> compromised as before, with the added danger that it now *looks* handled.
+
+Fixed by creating a dedicated fresh account for the service's audit submissions (never re-keying —
+see 3 September's rule on why), setting it via `--stdin`, and verifying against the HCS topic
+itself via the mirror node — not the app's own claim that the write succeeded.
+
+**A cheap gate now asserts the invariant that would have caught this.** `Gate 0 · No retired
+credential live` collects every account under a `retired` key in `deployments/hedera-testnet.json`
+and checks it against every Hedera-account-shaped variable on both Railway services and in `.env` —
+reading values into memory to compare, never printing them. Canaried by planting a retired account
+id in `.env` and confirming the gate fails on it, then restoring.
+
+**A flat-fee listing exposed an assumption the whole pricing arithmetic had made silently: every
+listing has a quantity dial.** Asked to price Uniswap V3's total protocol TVL — one number, unable
+to differ from itself on a second call — the model was offered a dial of 3/10/25/50 "query" anyway,
+chose 3, and rationalized it as "a primary result plus 1–2 extra queries for quick verification."
+The three queries return byte-identical data, confirmed directly against the live subgraph, so the
+reasoning was plausible-sounding and wrong — a live counter-demonstration of the exact thing this
+project scores on, sitting in front of judges. Fixed in the reading layer only, no contract change:
+`unit: "query"` (already the flat-fee listing's own record) is the signal; `priceOf()`,
+`planSet()` and the service's own `quote()` now all clamp to one plan and one charge for it,
+regardless of what was asked for. Canaried both the client-side and server-side fixes by reverting
+each and confirming the new tests — `@tollgate/discovery`'s first test suite — failed without them.

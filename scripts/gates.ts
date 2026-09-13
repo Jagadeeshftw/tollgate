@@ -565,6 +565,7 @@ async function gate0() {
 
   await deployerCheck();
   await railwayCheck();
+  await retiredCredentialCheck();
 }
 
 
@@ -610,6 +611,90 @@ async function railwayCheck() {
   } catch (err) {
     record(name, "FAIL", (err as Error)?.message ?? String(err));
   }
+}
+
+/**
+ * No account marked retired is still a live credential anywhere.
+ *
+ * @remarks
+ * Exists because one already was: `tollgate-service`'s `HEDERA_OPERATOR_ID` was still the account
+ * `deployments/hedera-testnet.json` itself recorded as retired "after an earlier exposure — the
+ * earlier rotation never reached this service." The record and reality disagreed for days and
+ * nothing surfaced it — a rotation that updates every location it remembers is not the same claim
+ * as one that has been checked against every location that could still hold the old credential.
+ *
+ * Every account under any `retired` key in the deployment record is collected, then every
+ * `*_HEDERA_OPERATOR_ID`-shaped variable on every known Railway service and in `.env` is checked
+ * against that set. Values are read into memory and compared; none is ever printed — the same
+ * hazard this check exists to catch is not one to reproduce while checking for it.
+ */
+async function retiredCredentialCheck() {
+  const name = "Gate 0  No retired credential live";
+  const { readFileSync } = await import("node:fs");
+  const { execFileSync } = await import("node:child_process");
+
+  let record_: unknown;
+  try {
+    record_ = JSON.parse(readFileSync("deployments/hedera-testnet.json", "utf8"));
+  } catch {
+    return record(name, "BLOCKED", "no deployments/hedera-testnet.json");
+  }
+
+  // Walk the record for every account id nested under a key named "retired".
+  const retired = new Set<string>();
+  (function collect(node: unknown, underRetired: boolean) {
+    if (node === null || typeof node !== "object") {
+      if (underRetired && typeof node === "string" && /^0\.0\.\d+$/.test(node)) retired.add(node);
+      return;
+    }
+    for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+      collect(value, underRetired || key === "retired");
+    }
+  })(record_, false);
+
+  if (retired.size === 0) {
+    return record(name, "PASS", "no retired accounts on record — nothing to check yet");
+  }
+
+  const token = process.env.RAILWAY_TOKEN ?? process.env.RAILWAY_PROJECT_TOKEN;
+  if (!token) {
+    return record(name, "BLOCKED", "no RAILWAY_TOKEN or RAILWAY_PROJECT_TOKEN — cannot enumerate Railway variables");
+  }
+
+  const services = ["tollgate-web", "tollgate-service"];
+  const hits: string[] = [];
+  try {
+    for (const service of services) {
+      const out = execFileSync(
+        "railway",
+        ["variable", "list", "-s", service, "--json"],
+        { encoding: "utf8", timeout: 20_000, env: { ...process.env, RAILWAY_TOKEN: token } },
+      );
+      const vars = JSON.parse(out) as Record<string, string>;
+      for (const [key, value] of Object.entries(vars)) {
+        if (/HEDERA_OPERATOR_ID|SETTLEMENT_ID|_ACCOUNT/.test(key) && retired.has(value)) {
+          hits.push(`${service}.${key}`);
+        }
+      }
+    }
+    const envText = readFileSync(".env", "utf8");
+    for (const account of retired) {
+      // Matches ACCOUNT=0.0.123 for any variable name — catches a retired id under a name this
+      // check did not anticipate, not just the ones it happened to think to look for.
+      if (new RegExp(`=${account.replace(/\./g, "\\.")}\\b`).test(envText)) hits.push(`.env → ${account}`);
+    }
+  } catch (err) {
+    return record(name, "FAIL", `could not enumerate: ${(err as Error)?.message ?? err}`);
+  }
+
+  if (hits.length > 0) {
+    return record(
+      name,
+      "FAIL",
+      `retired account(s) still live at: ${hits.join(", ")} — see deployments/hedera-testnet.json`,
+    );
+  }
+  record(name, "PASS", `${retired.size} retired account(s) on record, none live in ${services.length} service(s) or .env`);
 }
 
 /**
