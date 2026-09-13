@@ -55,6 +55,23 @@ export function totalPrice(unitPrice: string, units: number): string {
   return fracPart === "" ? intPart : `${intPart}.${fracPart}`;
 }
 
+/**
+ * A listing with no meaningful quantity to buy more or less of.
+ *
+ * @remarks
+ * Mirrors `isFlatFee` in `packages/discovery/src/policy.ts` — the same one-line predicate, on
+ * purpose kept as a separate copy here rather than a shared dependency: the service and the
+ * client-side policy package are deliberately not coupled, and this is cheap enough to duplicate.
+ * Both sides read the same signal from the listing: `unit === "query"`.
+ *
+ * Without this, a caller could request `?limit=1000` against a flat-fee listing and be charged
+ * 1000x for the same single answer served 1000 times over — the server's own metering knew
+ * nothing about "flat fee" and multiplied unconditionally.
+ */
+export function isFlatFee(listing: Pick<Listing, "unit">): boolean {
+  return listing.unit === "query";
+}
+
 export interface Quote {
   readonly units: number;
   readonly unit: string;
@@ -63,10 +80,11 @@ export interface Quote {
 }
 
 export function quote(listing: Listing, units: number): Quote {
+  const effectiveUnits = isFlatFee(listing) ? 1 : units;
   return {
-    units,
+    units: effectiveUnits,
     unit: listing.unit,
     unitPrice: listing.unitPrice,
-    total: totalPrice(listing.unitPrice, units),
+    total: totalPrice(listing.unitPrice, effectiveUnits),
   };
 }

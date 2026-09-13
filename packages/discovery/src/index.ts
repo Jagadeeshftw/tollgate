@@ -11,6 +11,7 @@ export {
   UnpriceableCandidateError,
   affordablePlans,
   formatAmount,
+  isFlatFee,
   planSet,
   priceOf,
   toBaseUnits,

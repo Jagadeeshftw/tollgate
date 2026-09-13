@@ -9,7 +9,7 @@ import { NoopAuditLog } from "./audit.js";
 import type { DataSource } from "./data.js";
 import { requireListing } from "./ens.js";
 import { IncompleteListingError, type Listings, UnknownServiceError } from "./listing.js";
-import { InvalidUnitsError, quote, unitsRequested } from "./metering.js";
+import { InvalidUnitsError, isFlatFee, quote, unitsRequested } from "./metering.js";
 import { buildRouteConfig, labelFromPath } from "./paywall.js";
 import { assertQuotable, UnquotableListingError } from "./validate.js";
 
@@ -54,8 +54,12 @@ export function createApp(options: AppOptions): Express {
       let units = 1;
       let unit = "";
       try {
-        units = unitsRequested(typeof limit === "string" ? limit : undefined);
-        unit = (await options.listings.resolve(label))?.unit ?? "";
+        const requested = unitsRequested(typeof limit === "string" ? limit : undefined);
+        const listing = await options.listings.resolve(label);
+        unit = listing?.unit ?? "";
+        // The audit trail should record what was actually billed, not what the query string
+        // asked for — a flat-fee listing charges once regardless of `?limit`.
+        units = listing && isFlatFee(listing) ? 1 : requested;
       } catch {
         // A malformed meter cannot retroactively invalidate a settled payment; record what we know.
       }
@@ -152,9 +156,13 @@ export function createApp(options: AppOptions): Express {
     try {
       const label = req.params.label as string;
       const listing = await requireListing(options.listings, label);
-      const units = unitsRequested(
+      const requestedUnits = unitsRequested(
         typeof req.query.limit === "string" ? req.query.limit : undefined,
       );
+      // Reported and served as what was actually billed, not what `?limit` asked for — a
+      // flat-fee listing was already charged once by the paywall (see metering.ts's quote()),
+      // and echoing the raw request here would claim units it did not charge for.
+      const units = isFlatFee(listing) ? 1 : requestedUnits;
 
       if (!options.dataSource) {
         // Reached only if a payment has already settled, so say plainly that the money moved and

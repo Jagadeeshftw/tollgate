@@ -26,13 +26,40 @@ export function toBaseUnits(amount: string, asset: string): bigint {
   return BigInt(whole + fraction.padEnd(decimals, "0"));
 }
 
-/** What buying `units` from `candidate` would cost. */
+/**
+ * A listing with no meaningful quantity to buy more or less of.
+ *
+ * @remarks
+ * `unit` is the discriminator: every metered listing names a countable thing — "pool", "block" —
+ * and `"query"` is reserved for listings where one call answers the question completely and a
+ * second call cannot return anything different. That is already how `uniswap-tvl` is listed; nothing
+ * about the ENS record needs to change to make this real, only how the arithmetic reads it.
+ *
+ * Found the hard way: offered a normal-looking dial of 3/10/25/50 "query" alongside metered
+ * listings, the model chose 3 and rationalized it as "a primary result plus 1–2 extra queries for
+ * quick verification" — plausible-sounding, and wrong, since the three queries return
+ * byte-identical data. The dial has to disappear for a flat-fee listing, not just be visible and
+ * unwise to turn.
+ */
+export function isFlatFee(candidate: Candidate): boolean {
+  return candidate.unit === "query";
+}
+
+/**
+ * What buying `units` from `candidate` would cost.
+ *
+ * @remarks
+ * `units` is clamped to 1 for a flat-fee listing regardless of what was asked for — the caller may
+ * still request `units`, but paying for it as though it were 10 when it can only ever be 1 would
+ * be charging 10x for the same answer, not selling 10 answers.
+ */
 export function priceOf(candidate: Candidate, units: number): Plan {
   if (!Number.isSafeInteger(units) || units < 1) {
     throw new UnpriceableCandidateError(candidate.label, `invalid unit count ${units}`);
   }
+  const effectiveUnits = isFlatFee(candidate) ? 1 : units;
   const unitCost = toBaseUnits(candidate.unitPrice, candidate.asset);
-  return { candidate, units, costBaseUnits: unitCost * BigInt(units) };
+  return { candidate, units: effectiveUnits, costBaseUnits: unitCost * BigInt(effectiveUnits) };
 }
 
 /**
@@ -51,7 +78,11 @@ export function affordablePlans(
 ): Plan[] {
   const plans: Plan[] = [];
   for (const candidate of candidates) {
-    for (const units of unitChoices) {
+    // A flat-fee listing has exactly one plan, ever — offering it once per unit choice would
+    // print the same row four times, which is a worse bug than not deduplicating: it looks like
+    // four options instead of one.
+    const choices = isFlatFee(candidate) ? [1] : unitChoices;
+    for (const units of choices) {
       try {
         const plan = priceOf(candidate, units);
         if (budget.canAfford(plan.costBaseUnits)) plans.push(plan);
@@ -87,7 +118,9 @@ export function planSet(
   const excluded: { plan: Plan; because: string }[] = [];
 
   for (const candidate of candidates) {
-    for (const units of unitChoices) {
+    // See affordablePlans: a flat-fee listing gets exactly one plan, not one per unit choice.
+    const choices = isFlatFee(candidate) ? [1] : unitChoices;
+    for (const units of choices) {
       let plan: Plan;
       try {
         plan = priceOf(candidate, units);
