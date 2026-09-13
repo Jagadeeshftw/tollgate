@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Closing, Footer } from "@/components/landing/Closing";
 import { LandingNav } from "@/components/landing/LandingNav";
 import { Reveal } from "@/components/landing/Reveal";
-import { Band, Eyebrow, Faq, Heading, Layers, Steps, UseCases } from "@/components/landing/Sections";
+import { Band, Eyebrow, Faq, Heading, Layers, Paths, Steps, UseCases } from "@/components/landing/Sections";
 
 export default function Landing() {
   const router = useRouter();
@@ -41,48 +41,7 @@ export default function Landing() {
             no signup, and sells it no subscription — and no human signs anything in the loop.
           </p>
 
-          {/*
-            Two real paths, because the product is the SDK and the registry — not the dashboard.
-            The dashboard is a demo playground funded by us; presenting it as the main event made
-            three hand-listed services read as a ceiling rather than an example.
-          */}
-          <div className="mx-auto mt-10 grid max-w-[980px] gap-4 text-left md:grid-cols-2">
-            <a
-              href="https://github.com/Jagadeeshftw/tollgate/tree/main/packages/sdk"
-              className="group rounded-xl border border-rule bg-surface p-6 transition-colors hover:border-rule-lit"
-            >
-              <p className="font-mono text-[11px] tracking-[0.12em] text-judgment uppercase">Buy data</p>
-              <h2 className="mt-3 text-[20px] font-bold tracking-tight text-ink">Build an agent that pays per call</h2>
-              <p className="mt-2 text-[14.5px] text-muted">
-                <span className="font-mono text-ink">@tollgatehq/sdk</span> discovers services by ENS name, quotes
-                without spending, and pays over x402 under a hard budget. It does the arithmetic; your agent
-                makes the calls. It never touches a model.
-              </p>
-              <p className="mt-4 font-mono text-[12px] text-dim">
-                source on GitHub · npm release follows the discovery extraction
-                <span className="ml-1 text-muted transition-transform group-hover:translate-x-0.5">→</span>
-              </p>
-            </a>
-            <a
-              href="https://github.com/Jagadeeshftw/tollgate/blob/main/contracts/src/TollgateRegistrar.sol"
-              className="group rounded-xl border border-rule bg-surface p-6 transition-colors hover:border-rule-lit"
-            >
-              <p className="font-mono text-[11px] tracking-[0.12em] text-judgment uppercase">Sell data</p>
-              <h2 className="mt-3 text-[20px] font-bold tracking-tight text-ink">List a service under an ENS name</h2>
-              <p className="mt-2 text-[14.5px] text-muted">
-                Price, endpoint and settlement account live on your own subname. You can reprice and
-                repoint it; ENS stops you redirecting the money. Listing under{" "}
-                <span className="font-mono text-ink">tollgatehq.eth</span> is allowlisted today — the
-                registrar is open source, so you can run your own under a name you own.
-              </p>
-              <p className="mt-4 font-mono text-[12px] text-dim">
-                registrar source · the rules it enforces
-                <span className="ml-1 text-muted transition-transform group-hover:translate-x-0.5">→</span>
-              </p>
-            </a>
-          </div>
-
-          <div className="mx-auto mt-12 max-w-[620px]">
+          <div className="mx-auto mt-10 max-w-[620px]">
             <p className="font-mono text-[11px] tracking-[0.12em] text-dim uppercase">
               Or try it — a live demo paid from our testnet account
             </p>
@@ -132,7 +91,23 @@ export default function Landing() {
         </div>
       </section>
 
-      <Band id="how">
+      {/*
+        Two real paths, because the product is the SDK and the registry — not the dashboard. Moved
+        out of the hero into its own section: two dense cards directly under the subhead crowded a
+        headline that should land the claim and show the product, nothing else.
+      */}
+      <Band id="paths" className="border-t border-rule">
+        <Reveal>
+          <Heading lede="The dashboard below is a demo we fund. The product is either side of this.">
+            Two paths in
+          </Heading>
+        </Reveal>
+        <Reveal delay={0.06}>
+          <Paths />
+        </Reveal>
+      </Band>
+
+      <Band id="how" className="border-t border-rule">
         <Reveal>
           <Heading lede="The two networks are never coupled at transaction level. There is no bridge. ENS is a read, Hedera is a write, and the agent does one then the other.">
             Three layers, one flow

@@ -38,6 +38,51 @@ export function Heading({ children, lede }: { children: React.ReactNode; lede?: 
   );
 }
 
+/**
+ * Two real paths, because the product is the SDK and the registry — not the dashboard. The
+ * dashboard is a demo playground funded by us; presenting it as the main event made a handful of
+ * hand-listed services read as a ceiling rather than an example.
+ */
+export function Paths() {
+  return (
+    <div className="mx-auto mt-8 grid max-w-[980px] gap-4 text-left md:grid-cols-2">
+      <a
+        href="https://github.com/Jagadeeshftw/tollgate/tree/main/packages/sdk"
+        className="group rounded-xl border border-rule bg-surface p-6 transition-colors hover:border-rule-lit"
+      >
+        <p className="font-mono text-[11px] tracking-[0.12em] text-judgment uppercase">Buy data</p>
+        <h3 className="mt-3 text-[20px] font-bold tracking-tight text-ink">Build an agent that pays per call</h3>
+        <p className="mt-2 text-[14.5px] text-muted">
+          <span className="font-mono text-ink">@tollgatehq/sdk</span> discovers services by ENS name, quotes
+          without spending, and pays over x402 under a hard budget. It does the arithmetic; your agent
+          makes the calls. It never touches a model.
+        </p>
+        <p className="mt-4 font-mono text-[12px] text-dim">
+          source on GitHub · npm release follows the discovery extraction
+          <span className="ml-1 text-muted transition-transform group-hover:translate-x-0.5">→</span>
+        </p>
+      </a>
+      <a
+        href="https://github.com/Jagadeeshftw/tollgate/blob/main/contracts/src/TollgateRegistrar.sol"
+        className="group rounded-xl border border-rule bg-surface p-6 transition-colors hover:border-rule-lit"
+      >
+        <p className="font-mono text-[11px] tracking-[0.12em] text-judgment uppercase">Sell data</p>
+        <h3 className="mt-3 text-[20px] font-bold tracking-tight text-ink">List a service under an ENS name</h3>
+        <p className="mt-2 text-[14.5px] text-muted">
+          Price, endpoint and settlement account live on your own subname. You can reprice and
+          repoint it; ENS stops you redirecting the money. Listing under{" "}
+          <span className="font-mono text-ink">tollgatehq.eth</span> is allowlisted today — the
+          registrar is open source, so you can run your own under a name you own.
+        </p>
+        <p className="mt-4 font-mono text-[12px] text-dim">
+          registrar source · the rules it enforces
+          <span className="ml-1 text-muted transition-transform group-hover:translate-x-0.5">→</span>
+        </p>
+      </a>
+    </div>
+  );
+}
+
 /** The three layers. Numbered because they genuinely are a sequence: read, pay, receive. */
 export function Layers() {
   const layers = [
