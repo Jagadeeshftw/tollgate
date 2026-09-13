@@ -34,7 +34,7 @@ export const SEPOLIA_DEPLOYMENT = {
    * would silently show an empty marketplace, which is exactly what happened the first time this
    * SDK's own example was run.
    */
-  services: ["uniswap-pools", "dex-pools", "curve-pools"],
+  services: ["uniswap-pools", "dex-pools", "curve-pools", "uniswap-tvl"],
 } as const;
 
 /** Native HBAR. Prices in a listing are denominated in the asset its records name. */

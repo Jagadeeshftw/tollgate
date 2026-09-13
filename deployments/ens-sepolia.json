@@ -11,7 +11,8 @@
   "services": [
     "uniswap-pools",
     "dex-pools",
-    "curve-pools"
+    "curve-pools",
+    "uniswap-tvl"
   ],
   "deployBlock": 11613900,
   "deployBlockNote": "Lower bound for event scans. Real Sepolia rejects getLogs from block 0, so discovery must start here; the registrar cannot have events before it existed.",

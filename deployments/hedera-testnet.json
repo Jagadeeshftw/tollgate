@@ -14,5 +14,10 @@
       "settlementAccount": "0.0.10322894"
     },
     "note": "rotated after key exposure; the retired accounts must not be funded or used again"
+  },
+  "auditSubmitter": {
+    "operatorAccount": "0.0.10512911",
+    "createdAt": "2026-09-12T23:58:37.877Z",
+    "note": "dedicated account for tollgate-service's HCS audit-log submissions. Replaces hosted.retired.operatorAccount (0.0.10322893), which was still configured as the service's live HEDERA_OPERATOR_ID despite being marked retired after an earlier exposure — the earlier rotation never reached this service. Exposed again on 13 September via an over-broad `railway variable list --kv` and rotated the same day."
   }
 }

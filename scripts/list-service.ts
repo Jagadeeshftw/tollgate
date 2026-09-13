@@ -73,6 +73,23 @@ function catalogue(settlement: string, base: string) {
         schema: "{pools:[{id,protocol,tvlUSD}]}",
       },
     },
+    {
+      label: "uniswap-tvl",
+      listing: {
+        ...common,
+        // Deliberately not "pool": this sells one flat-fee answer, not a metered list — see
+        // packages/graph/src/dataSource.ts and spec/PROMPTS.md for what asking for more than one
+        // "query" of it actually does.
+        unit: "query",
+        context:
+          "Uniswap V3's total value locked across the whole protocol, live from The Graph. One " +
+          "number, not a ranked list — use this when the question is about the protocol as a " +
+          "whole rather than about individual pools.",
+        endpoint: `${base}/s/uniswap-tvl`,
+        price: "0.001",
+        schema: "{protocol,totalValueLockedUSD}",
+      },
+    },
   ];
 }
 
